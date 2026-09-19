@@ -148,6 +148,13 @@ $url = $this->uri->segment(1); ?>
 </head>
 
 <body>
+			<!-- UAT Marquee -->
+		<div class="uat-marquee">
+			<div class="uat-marquee-text">
+				⚠️ UAT ENVIRONMENT — This is a testing environment. Please do not use this site for production transactions.
+			</div>
+		</div>
+		<!-- /UAT Marquee -->
     <div class="ajax-loader-hide loader"></div>
 	<!-- Main Wrapper -->
 	<div class="main-wrapper">
@@ -248,14 +255,6 @@ $url = $this->uri->segment(1); ?>
 
 		</div>
 		<!-- /Header -->
-
-		<!-- UAT Marquee -->
-		<div class="uat-marquee">
-			<div class="uat-marquee-text">
-				⚠️ UAT ENVIRONMENT — This is a testing environment. Please do not use this site for production transactions.
-			</div>
-		</div>
-		<!-- /UAT Marquee -->
 
 		<!-- Sidebar -->
 		<div class="sidebar" id="sidebar">
