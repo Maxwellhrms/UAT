@@ -1,0 +1,2820 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+require 'Common.php';
+class Admin extends Common
+{
+    protected $imglink = 'uploads/';
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->model('Adminmodel');
+        $this->load->model('Salaries_model');
+    }
+
+    public function index()
+    {
+        if(!$this->session->userdata('logindetails')){
+			$this->load->view('index');
+		}else{			            
+			redirect(base_url() . 'dashboard/index');
+		}
+    }
+
+    public function logincheck()
+    {
+        $login = $this->input->post();
+        $user = $this->Adminmodel->checkvaliduser($login);
+        $employeesdata = $this->Adminmodel->getemployeedetailstosetsession($login);
+        if (!empty($user)) {
+            $this->session->set_userdata('user_id', $user[0]->mxemp_emp_lg_employee_id);
+            $this->session->set_userdata('user_name', $user[0]->mxemp_emp_lg_fullname);
+            $this->session->set_userdata('user_role', $user[0]->mxemp_emp_lg_role);
+            $this->session->set_userdata('user_role_add', $user[0]->maxuser_roles_add);
+            $this->session->set_userdata('user_role_edit', $user[0]->maxuser_roles_edit);
+            $this->session->set_userdata('user_role_delete', $user[0]->maxuser_roles_delete);
+            $this->session->set_userdata('user_img', $employeesdata[0]->mxemp_emp_img);
+            $this->session->set_userdata('user_company', $employeesdata[0]->mxemp_emp_comp_code);
+            $this->session->set_userdata('user_division', $employeesdata[0]->mxemp_emp_division_code);
+            $this->session->set_userdata('user_branch', $employeesdata[0]->mxemp_emp_branch_code);
+            $this->session->set_userdata('user_department', $employeesdata[0]->mxemp_emp_dept_code);
+            $this->session->set_userdata('user_grade', $employeesdata[0]->mxemp_emp_grade_code);
+            $this->session->set_userdata('user_designation', $employeesdata[0]->mxemp_emp_desg_code);
+            $this->session->set_userdata('user_state', $employeesdata[0]->mxemp_emp_state_code);
+            $this->session->set_userdata('user_employement_type', $employeesdata[0]->mxemp_emp_type);
+            $this->session->set_userdata('user_limiteddropdowns', $user[0]->mxemp_emp_inbranch);
+            $this->session->set_userdata('user_custom_branches', $user[0]->mxemp_emp_custom_branch);
+            
+            $this->session->set_userdata('session_id', session_id());
+            $this->processloginhistory($this->getcurrentfunctionname(),$this->getfullurl());
+            echo 200;
+        } else {
+            echo 400;
+        }
+    }
+
+    public function verifylogin()
+    {
+        
+        if (empty($this->session->userdata('user_id'))) {
+            redirect(base_url() . 'admin/logout');
+            die();
+        }
+    }
+
+    public function logout()
+    {
+        $this->processloginhistory($this->getcurrentfunctionname(),$this->getfullurl());
+        $this->session->sess_destroy();
+        redirect(base_url() . 'admin/index');
+    }
+
+
+    public function dashboard(){
+	    $this->verifylogin();
+// 		$this->header();
+// 		$this->load->view('dashboard',$data);
+		redirect(base_url() . 'dashboard/index');
+// 		$this->footer();
+	}
+
+    public function companymaster()
+    {
+        $this->verifylogin();
+        $this->processloginhistory($this->getcurrentfunctionname(),$this->getfullurl());
+        // echo $this->session->userdata('mxemp_emp_lg_employee_id');
+        // print_r($_SESSION);EXIT;
+
+        $this->header();
+        $data['financial'] = $this->Adminmodel->getfinancial_year_type_master();
+        $data['cmpdetailslist'] = $this->Adminmodel->getcompanydetails($id = '');
+        $data['states'] = $this->Adminmodel->getstates_master();
+        $this->load->view('masters/company', $data);
+        $this->footer();
+    }
+
+    public function savecompanydetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $fileType = pathinfo(basename($_FILES["cmplogo"]["name"]), PATHINFO_EXTENSION);
+        $allowTypes = array('jpg', 'png', 'jpeg', 'gif');
+        $wh = getimagesize($_FILES["cmplogo"]["tmp_name"]);
+        $imagesize = filesize($_FILES["cmplogo"]["tmp_name"]);
+        if (is_uploaded_file($_FILES["cmplogo"]["tmp_name"])) {
+            if (in_array($fileType, $allowTypes)) {
+                // if($wh[0] <= 160 && $wh[1] <= 160){ 
+                if ($imagesize < 1000000) {
+                    $targetfolder = $this->imglink . "companyimages/";
+                    $targetfolder1 = basename($_FILES['cmplogo']['name']);
+                    $fileext = pathinfo($_FILES['cmplogo']['name'], PATHINFO_EXTENSION);
+                    $destination = $targetfolder . "cmplogo-" . rand() . "." . $fileext;
+                    move_uploaded_file($_FILES['cmplogo']['tmp_name'], $destination);
+                    $userdata['cmplogo'] = $destination;
+                } else {
+                    echo 'Image Size Should Be Lessthan 1Mb';
+                    die();
+                }
+                // }else{
+                //     echo 'Height and width Should Lessthan or equal to 160px';die();
+                // }
+            } else {
+                echo 'Image Formate Should be jpg/jpeg/png/gif';
+                die();
+            }
+        } else {
+            $userdata['cmplogo'] = '';
+        }
+        $res = $this->Adminmodel->savecmpdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function editcompany()
+    {
+        $this->verifylogin();
+        $this->processloginhistory($this->getcurrentfunctionname(),$this->getfullurl());
+        $id = $this->uri->segment(3);
+        $data['financial'] = $this->Adminmodel->getfinancial_year_type_master();
+        $data['cmpdetails'] = $this->Adminmodel->getcompanydetails($id);
+        $data['states'] = $this->Adminmodel->getstates_master();
+        $this->header();
+        $this->load->view('masters/editcompany', $data);
+        $this->footer();
+    }
+
+    public function saveeditcompanydetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $fileType = pathinfo(basename($_FILES["cmplogo"]["name"]), PATHINFO_EXTENSION);
+        $allowTypes = array('jpg', 'png', 'jpeg', 'gif');
+        $wh = getimagesize($_FILES["cmplogo"]["tmp_name"]);
+        $imagesize = filesize($_FILES["cmplogo"]["tmp_name"]);
+        if (is_uploaded_file($_FILES["cmplogo"]["tmp_name"])) {
+            if (in_array($fileType, $allowTypes)) {
+                // if($wh[0] <= 160 && $wh[1] <= 160){ 
+                if ($imagesize < 1000000) {
+                    $targetfolder = $this->imglink . "companyimages/";
+                    $targetfolder1 = basename($_FILES['cmplogo']['name']);
+                    $fileext = pathinfo($_FILES['cmplogo']['name'], PATHINFO_EXTENSION);
+                    $destination = $targetfolder . "cmplogo-" . rand() . "." . $fileext;
+                    move_uploaded_file($_FILES['cmplogo']['tmp_name'], $destination);
+                    $userdata['cmplogo'] = $destination;
+                } else {
+                    echo 'Image Size Should Be Lessthan 1Mb';
+                    die();
+                }
+                // }else{
+                //     echo 'Height and width Should Lessthan or equal to 160px';die();
+                // }
+            } else {
+                echo 'Image Formate Should be jpg/jpeg/png/gif';
+                die();
+            }
+        } else {
+            $userdata['cmplogo'] = '';
+        }
+        $res = $this->Adminmodel->saveeditcmpdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function deletecompany()
+    {
+        $this->verifylogin();
+        $delid = $this->input->post('id');
+        $res = $this->Adminmodel->updatecompanystatus($delid);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function divisionmaster()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divisiondetails'] = $this->Adminmodel->getdivisiondetails($id = '');
+        $this->load->view('masters/division', $data);
+        $this->footer();
+    }
+
+    public function savedivisondetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $fileType = pathinfo(basename($_FILES["divlogo"]["name"]), PATHINFO_EXTENSION);
+        $allowTypes = array('jpg', 'png', 'jpeg', 'gif');
+        $wh = getimagesize($_FILES["divlogo"]["tmp_name"]);
+        $imagesize = filesize($_FILES["divlogo"]["tmp_name"]);
+        if (is_uploaded_file($_FILES["divlogo"]["tmp_name"])) {
+            if (in_array($fileType, $allowTypes)) {
+                // if($wh[0] <= 160 && $wh[1] <= 160){ 
+                if ($imagesize < 1000000) {
+                    $targetfolder = $this->imglink . "divisionimages/";
+                    $targetfolder1 = basename($_FILES['divlogo']['name']);
+                    $fileext = pathinfo($_FILES['divlogo']['name'], PATHINFO_EXTENSION);
+                    $destination = $targetfolder . "divlogo-" . rand() . "." . $fileext;
+                    move_uploaded_file($_FILES['divlogo']['tmp_name'], $destination);
+                    $userdata['divlogo'] = $destination;
+                } else {
+                    echo 'Image Size Should Be Lessthan 1Mb';
+                    die();
+                }
+                // }else{
+                //     echo 'Height and width Should Lessthan or equal to 160px';die();
+                // }
+            } else {
+                echo 'Image Formate Should be jpg/jpeg/png/gif';
+                die();
+            }
+        } else {
+            $userdata['divlogo'] = '';
+        }
+        $res = $this->Adminmodel->savedivdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function deletedivision()
+    {
+        $this->verifylogin();
+        $delid = $this->input->post('id');
+        $res = $this->Adminmodel->updatedivisionstatus($delid);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function editdivision()
+    {
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divisiondetails'] = $this->Adminmodel->getdivisiondetails($id);
+        $this->load->view('masters/editdivision', $data);
+        $this->footer();
+    }
+
+    public function saveeditdivisondetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $fileType = pathinfo(basename($_FILES["divlogo"]["name"]), PATHINFO_EXTENSION);
+        $allowTypes = array('jpg', 'png', 'jpeg', 'gif');
+        $wh = getimagesize($_FILES["divlogo"]["tmp_name"]);
+        $imagesize = filesize($_FILES["divlogo"]["tmp_name"]);
+        if (is_uploaded_file($_FILES["divlogo"]["tmp_name"])) {
+            if (in_array($fileType, $allowTypes)) {
+                // if($wh[0] <= 160 && $wh[1] <= 160){ 
+                if ($imagesize < 1000000) {
+                    $targetfolder = $this->imglink . "divisionimages/";
+                    $targetfolder1 = basename($_FILES['divlogo']['name']);
+                    $fileext = pathinfo($_FILES['divlogo']['name'], PATHINFO_EXTENSION);
+                    $destination = $targetfolder . "divlogo-" . rand() . "." . $fileext;
+                    move_uploaded_file($_FILES['divlogo']['tmp_name'], $destination);
+                    $userdata['divlogo'] = $destination;
+                } else {
+                    echo 'Image Size Should Be Lessthan 1Mb';
+                    die();
+                }
+                // }else{
+                //     echo 'Height and width Should Lessthan or equal to 160px';die();
+                // }
+            } else {
+                echo 'Image Formate Should be jpg/jpeg/png/gif';
+                die();
+            }
+        } else {
+            $userdata['divlogo'] = '';
+        }
+        $res = $this->Adminmodel->saveeditdivdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function branchmaster()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['states'] = $this->Adminmodel->getstates_master();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divmaster'] = $this->Adminmodel->getdivision_master();
+        $data['branchdetails'] = $this->Adminmodel->getbranchdetails($id = '');
+        $this->load->view('masters/branch', $data);
+        $this->footer();
+    }
+
+    public function savebranchdetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->savebranchdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function deletebranch()
+    {
+        $this->verifylogin();
+        $delid = $this->input->post('id');
+        $res = $this->Adminmodel->updatebranchstatus($delid);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function editbranch()
+    {
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $this->header();
+        $data['states'] = $this->Adminmodel->getstates_master();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divmaster'] = $this->Adminmodel->getdivision_master();
+        $data['branchdetails'] = $this->Adminmodel->getbranchdetails($id);
+        $this->load->view('masters/editbranch', $data);
+        $this->footer();
+    }
+
+    public function saveeditbranchdetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveeditbranchdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function subbranchmaster()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divmaster'] = $this->Adminmodel->getdivision_master();
+        $data['branchmaster'] = $this->Adminmodel->getbranch_master();
+        $data['subbranchdetails'] = $this->Adminmodel->getsubbranchdetails($id = '');
+        $this->load->view('masters/subbranch', $data);
+        $this->footer();
+    }
+
+    public function savesubbranchdetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->savesubbranchdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function deletesubbranch()
+    {
+        $this->verifylogin();
+        $delid = $this->input->post('id');
+        $res = $this->Adminmodel->updatesubbranchstatus($delid);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function editsubbranch()
+    {
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divmaster'] = $this->Adminmodel->getdivision_master();
+        $data['branchmaster'] = $this->Adminmodel->getbranch_master();
+        $data['subbranchdetails'] = $this->Adminmodel->getsubbranchdetails($id);
+        $this->load->view('masters/editsubbranch', $data);
+        $this->footer();
+    }
+
+    public function saveeditsubbranchdetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveeditsubbranchdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function departmentmaster()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['departmentdetails'] = $this->Adminmodel->getdepartmentdetails($id = '');
+        $this->load->view('masters/department', $data);
+        $this->footer();
+    }
+    public function savedepartmentdetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->savedepartmentdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function deletedepartment()
+    {
+        $this->verifylogin();
+        $delid = $this->input->post('id');
+        $res = $this->Adminmodel->updatedeletedepartmentstatus($delid);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function editdepartment()
+    {
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['departmentdetails'] = $this->Adminmodel->getdepartmentdetails($id);
+        $this->load->view('masters/editdepartment', $data);
+        $this->footer();
+    }
+
+    public function saveeditdepartmentdetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveeditdepartmentdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function grademaster()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['gradedetails'] = $this->Adminmodel->getgradedetails($id = '');
+        $this->load->view('masters/grades', $data);
+        $this->footer();
+    }
+
+    public function savegradedetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->savegradedetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function deletegrade()
+    {
+        $this->verifylogin();
+        $delid = $this->input->post('id');
+        $res = $this->Adminmodel->updatedeletegradestatus($delid);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function editgrade()
+    {
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['gradedetails'] = $this->Adminmodel->getgradedetails($id);
+        $this->load->view('masters/editgrade', $data);
+        $this->footer();
+    }
+
+    public function saveeditgradedetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveeditgradedetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function designationmaster()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['grademaster'] = $this->Adminmodel->getgrade_master();
+        $data['designationdetails'] = $this->Adminmodel->getdesignationdetails($id = '');
+        $this->load->view('masters/designation', $data);
+        $this->footer();
+    }
+
+    public function savedesignationdetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->savedesignationdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function deletedesignation()
+    {
+        $this->verifylogin();
+        $delid = $this->input->post('id');
+        $res = $this->Adminmodel->updatedeletedesignationstatus($delid);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function editdesignation()
+    {
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['grademaster'] = $this->Adminmodel->getgrade_master();
+        $data['designationdetails'] = $this->Adminmodel->getdesignationdetails($id);
+        $this->load->view('masters/editdesignation', $data);
+        $this->footer();
+    }
+
+    public function saveeditdesignationdetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveeditdesignationdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function emptypemaster()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptypedetails'] = $this->Adminmodel->getemployeetypemasterdetails($id = '');
+        $this->load->view('masters/employeementtype', $data);
+        $this->footer();
+    }
+
+    public function saveemployeementtypemaster()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        echo $res = $this->Adminmodel->saveemployeementtypemasterdetails($userdata);
+        
+    }
+
+    public function editemployeementtypemaster()
+    {
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptypedetails'] = $this->Adminmodel->getemployeetypemasterdetails($id);
+        $this->header();
+        $this->load->view('masters/editemployeementtype', $data);
+        $this->footer();
+    }
+
+    public function editsaveemployeementtypemaster()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->editsaveemployeementtypemaster($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function statutorymaster()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['pf_statutory'] = $this->Adminmodel->get_pf_statutory_master();
+        $data['esi_statutory'] = $this->Adminmodel->get_esi_statutory_master();
+        $data['lwf_statutory'] = $this->Adminmodel->get_lwf_statutory_master();
+        $data['bns_statutory'] = $this->Adminmodel->get_bns_statutory_master();
+        $data['pt_statutory'] = $this->Adminmodel->get_pt_statutory_master();
+        $data['gratuity_statutory'] = $this->Adminmodel->get_gratuity_master();
+        $data['lta_statutory'] = $this->Adminmodel->get_lta_master();
+        $data['mediclaim_statutory'] = $this->Adminmodel->get_mediclaim_master();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['branchmaster'] = $this->Adminmodel->getbranch_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $data['financial'] = $this->Adminmodel->getfinancial_year_type_master();
+        $this->load->view('masters/statutory', $data);
+        $this->footer();
+    }
+
+    public function addnewemployee()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['states'] = $this->Adminmodel->getstates_master();
+        $data['countrymaster'] = $this->Adminmodel->getcountry_master();
+        $data['language'] = $this->Adminmodel->getlanguage_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $data['countries'] = $this->Adminmodel->getcountries_master();
+        // $data['emprelation'] = $this->Adminmodel->options_datas('employee_relation');
+        $data['controller'] = $this;
+        $this->load->view('employee/addnewemployee', $data);
+        $this->footer();
+    }
+
+    public function saveemployeedetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveemployeedata($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    
+
+    public function employeeslist()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['states'] = $this->Adminmodel->getstates_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('employee/employeeslist', $data);
+        $this->footer();
+    }
+
+    public function employeefliterdata()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $data['employeelist'] = $this->Adminmodel->getemployeeslist($userdata);
+        // print_r( $data['employeelist']); exit;
+        $this->load->view('employee/employeefilterlist', $data);
+    }
+
+    public function saveemployeefndfresigndata()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveemployeefndfresigndata($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    
+    public function employeesprofile()
+    {
+        $this->verifylogin();
+        $this->header();
+        $id = $this->uri->segment(3);
+        
+        if(!isset($id) || $id == ''){
+            show_404();
+        }
+        $data['emp'] = $this->Adminmodel->getemployeecompletedetails($id);
+        // echo"<pre>";print_r($data);exit;
+        $data['controller'] = $this;
+        $this->load->view('employee/employeesprofile', $data);
+        $this->footer();
+    }
+    # EMPLOYEE TRANSFERS
+    public function employeetransfers()
+    {
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divisiondetails'] = $this->Adminmodel->getdivisiondetails($id = '');
+        $this->load->view('employee/employeetransfters', $data);
+        $this->footer();
+    }
+
+    public function saveemployeetransferdetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $this->Adminmodel->saveemployeetransferdetails($userdata);
+    }
+
+    public function checkemployeeexists()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $emp_data = $this->Adminmodel->getemployeesinfo($userdata);
+        echo json_encode($emp_data);
+    }
+    # END EMPLOYEE TRANSFERS
+    public function holidaymaster()
+    {
+        
+        $this->verifylogin();
+        $this->header();
+        $data['states'] = $this->Adminmodel->getstates_master();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['displayholidaymaster'] = $this->Adminmodel->getholidaymaster();
+        $data['divisiondetails'] = $this->Adminmodel->getdivisiondetails($id = '');
+        $data['controller'] = $this;
+        $this->load->view('masters/holidaymaster', $data);
+        $this->footer();
+    }
+
+    public function deleteholiday(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->deleteholiday($userdata);
+    }
+
+
+    public function saveholidaydetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveholidaymasterdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else if($res == 3){
+            echo 3;exit;
+        }else{
+            echo 500;
+            die();
+        }
+    }
+
+
+    public function hodsmaster()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['hod_master'] = $this->Adminmodel->gethod_master();
+        $this->load->view('masters/hodsmaster', $data);
+        $this->footer();
+    }
+    //--------------------------------NEW BY SHABABU(04-01-2020)
+    public function getdivisions_based_on_branch_master()
+    {
+        //            print_r($_REQUEST);exit;
+        if (isset($_REQUEST['comp_id'])) {
+            $comp_id = $_REQUEST['comp_id'];
+        } else {
+            $comp_id = null;
+        }
+
+        if (isset($_REQUEST['type'])) {
+            $type = $_REQUEST['type'];
+        } else {
+            $type = null;
+        }
+        //            echo $div_id;exit;
+        $data = $this->Adminmodel->getdivisions_based_on_branch_master($comp_id, $type);
+        if (isset($_REQUEST['comp_id'])) {
+            echo json_encode($data);
+        } else {
+            return $data;
+        }
+        //            print_r($data);
+        //            exit;
+    }
+
+    public function getstates_based_on_branch_master()
+    {
+        if (isset($_REQUEST['comp_id'])) {
+            $comp_id = $_REQUEST['comp_id'];
+        } else {
+            $comp_id = null;
+        }
+        if (isset($_REQUEST['div_id'])) {
+            $div_id = $_REQUEST['div_id'];
+        } else {
+            $div_id = null;
+        }
+        if (isset($_REQUEST['type'])) {
+            $type = $_REQUEST['type'];
+        } else {
+            $type = null;
+        }
+        //            echo $type;exit;
+        $data = $this->Adminmodel->getstates_based_on_branch_master($comp_id, $div_id, $type);
+        if (isset($_REQUEST['comp_id'])) {
+            echo json_encode($data);
+        } else {
+            return $data;
+        }
+        //            print_r($data);
+        //            exit;
+    }
+
+    public function getbranches_based_on_eligibility_state_wise()
+    {
+        //print_r($_REQUEST);
+        if (isset($_REQUEST['comp_id'])) {
+            $comp_id = $_REQUEST['comp_id'];
+        } else {
+            $comp_id = null;
+        }
+        if (isset($_REQUEST['div_id'])) {
+            $div_id = $_REQUEST['div_id'];
+        } else {
+            $div_id = null;
+        }
+        if (isset($_REQUEST['state_id'])) {
+            $state_id = $_REQUEST['state_id'];
+        } else {
+            $state_id = null;
+        }
+        if (isset($_REQUEST['type'])) {
+            $type = $_REQUEST['type'];
+        } else {
+            $type = null;
+        }
+        if (isset($_REQUEST['is_headoffice'])) {
+            $is_headoffice = $_REQUEST['is_headoffice'];
+        } else {
+            $is_headoffice = null;
+        }
+        //            echo $state_id.$type;exit;
+        $data = $this->Adminmodel->getbranches_based_on_eligibility_state_wise($comp_id, $div_id, $state_id, $type, $is_headoffice);
+        // if (isset($_REQUEST['state_id'])) {
+        echo json_encode($data);
+        // } else {
+        //      return $data;
+        // }
+    }
+
+    #PF
+
+    public function save_pf_statutory()
+    {
+        $data = $this->Adminmodel->save_pf_statutory();
+    }
+
+    public function pf_statutorymaster_edit()
+    {
+        $this->header();
+        $pf_id = $this->uri->segment(3);
+        $data['states'] = $this->Adminmodel->getstates_based_on_branch_master();
+        $data['pf_statutory'] = $this->Adminmodel->get_pf_statutory_master($pf_id);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $this->load->view('masters/edit_pf_statutory', $data);
+        $this->footer();
+    }
+
+    public function delete_pf_statutory()
+    {
+        $delid_pf = $this->input->post('pf_id');
+        $res = $this->Adminmodel->delete_pf_statutory($delid_pf);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    #END PF
+    #ESI
+
+    public function save_esi_statutory()
+    {
+        $data = $this->Adminmodel->save_esi_statutory();
+    }
+
+    public function esi_statutorymaster_edit()
+    {
+        $this->header();
+        // $data['states'] = $this->Adminmodel->getstates_master();
+        // $data['states'] = $this->Adminmodel->getstates_based_on_branch_master();
+        $esi_id = $this->uri->segment(3);
+        $data['esi_statutory'] = $this->Adminmodel->get_esi_statutory_master($esi_id);
+        //                print_r($data['pf_statutory']);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        // $data['branchmaster'] = $this->Adminmodel->getbranch_master();
+        // $data['financial'] = $this->Adminmodel->getfinancial_year_type_master();
+        $this->load->view('masters/edit_esi_statutory', $data);
+        $this->footer();
+    }
+
+    public function delete_esi_statutory()
+    {
+        $delid_esi = $this->input->post('esi_id');
+        $res = $this->Adminmodel->delete_esi_statutory($delid_esi);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    #END ESI
+    #PT
+
+    public function save_pt_statutory()
+    {
+        $data = $this->Adminmodel->save_pt_statutory();
+    }
+
+    public function pt_statutorymaster_edit()
+    {
+        $this->header();
+        // $data['states'] = $this->Adminmodel->getstates_master();
+        // $data['states'] = $this->Adminmodel->getstates_based_on_branch_master();
+        $pt_id = $this->uri->segment(3);
+        $data['pt_statutory'] = $this->Adminmodel->get_pt_statutory_master($pt_id);
+        $pt_parent_id = $data['pt_statutory'][0]->mxpt_id;
+        $data['pt_slab_statutory'] = $this->Adminmodel->get_pt_slab_statutory_master($pt_parent_id);
+        //                print_r($data['pf_statutory']);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        // $data['branchmaster'] = $this->Adminmodel->getbranch_master();
+        // $data['financial'] = $this->Adminmodel->getfinancial_year_type_master();
+        $this->load->view('masters/edit_pt_statutory', $data);
+        $this->footer();
+    }
+
+    public function delete_pt_statutory()
+    {
+        $delid_pt = $this->input->post('pt_id');
+        $res = $this->Adminmodel->delete_pt_statutory($delid_pt);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    #END PT
+    #LWF
+
+    public function save_lwf_statutory()
+    {
+        $data = $this->Adminmodel->save_lwf_statutory();
+    }
+
+    public function lwf_statutorymaster_edit()
+    {
+        $this->header();
+        $lwf_id = $this->uri->segment(3);
+        $data['lwf_statutory'] = $this->Adminmodel->get_lwf_statutory_master($lwf_id);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $this->load->view('masters/edit_lwf_statutory', $data);
+        $this->footer();
+    }
+
+    public function delete_lwf_statutory()
+    {
+        $delid_lwf = $this->input->post('lwf_id');
+        $res = $this->Adminmodel->delete_lwf_statutory($delid_lwf);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    #END LWF
+    #BONUS
+
+    public function save_bns_statutory()
+    {
+        $data = $this->Adminmodel->save_bns_statutory();
+    }
+
+    public function bns_statutorymaster_edit()
+    {
+        $this->header();
+        $bns_id = $this->uri->segment(3);
+        $data['bns_statutory'] = $this->Adminmodel->get_bns_statutory_master($bns_id);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $this->load->view('masters/edit_bns_statutory', $data);
+        $this->footer();
+    }
+
+    public function delete_bns_statutory()
+    {
+        $delid_bns = $this->input->post('bns_id');
+        $res = $this->Adminmodel->delete_bns_statutory($delid_bns);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    #END BONUS
+    #PF REASON
+
+    public function pfreasons()
+    {
+        $this->header();
+        $data['pf_reasons'] = $this->Adminmodel->get_pf_reasons();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('masters/pfreasons', $data);
+        $this->footer();
+    }
+
+    public function save_pf_reason()
+    {
+        return $this->Adminmodel->save_pf_reason();
+    }
+
+    public function delete_pf_reason()
+    {
+        if (isset($_REQUEST['pf_reason_id'])) {
+            $pf_reason_id = $_REQUEST['pf_reason_id'];
+        } else {
+            $pf_reason_id = null;
+        }
+        $res = $this->Adminmodel->delete_pf_reason($pf_reason_id);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function pf_reason_edit()
+    {
+        $pf_reason_id = $this->uri->segment(3);
+        $this->header();
+        $data['pf_reasons'] = $this->Adminmodel->get_pf_reasons($pf_reason_id);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('masters/edit_pf_reasons', $data);
+        $this->footer();
+    }
+
+    public function update_pf_reason()
+    {
+        return $this->Adminmodel->update_pf_reason();
+    }
+
+    #END PF REASON
+    #ESI REASON
+
+    public function esireasons()
+    {
+        $this->header();
+        $data['esi_reasons'] = $this->Adminmodel->get_esi_reasons();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('masters/esireasons', $data);
+        $this->footer();
+    }
+
+    public function save_esi_reason()
+    {
+        return $this->Adminmodel->save_esi_reason();
+    }
+
+    public function update_esi_reason()
+    {
+
+        return $this->Adminmodel->update_esi_reason();
+    }
+
+    public function delete_esi_reason()
+    {
+        if (isset($_REQUEST['esi_reason_id'])) {
+            $esi_reason_id = $_REQUEST['esi_reason_id'];
+        } else {
+            $esi_reason_id = null;
+        }
+        $res = $this->Adminmodel->delete_esi_reason($esi_reason_id);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function esi_reason_edit()
+    {
+        $esi_reason_id = $this->uri->segment(3);
+        $this->header();
+        $data['esi_reasons'] = $this->Adminmodel->get_esi_reasons($esi_reason_id);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('masters/edit_esi_reason', $data);
+        $this->footer();
+    }
+
+    #END ESI REASON
+    #INCOME AND DEDUCTION REASON
+
+    public function income_deduction_reasons()
+    {
+        $this->header();
+        $data['income_types'] = $this->Adminmodel->get_income_types();
+        $data['deduction_types'] = $this->Adminmodel->get_deduction_types();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        // $data['incentive'] = $this->Adminmodel->getincentivedetails();
+        // $data['miscellaneous'] = $this->Adminmodel->getmiscellaneousdetails();
+        $data['pay_structure'] = $this->Adminmodel->get_paystructure_data_display();
+
+        // $data['emptypedetails'] = $this->Adminmodel->getemployeetypemasterdetails($id = '');
+        $this->load->view('masters/income_deduction', $data);
+        $this->footer();
+    }
+    public function save_income_type()
+    {
+        return $this->Adminmodel->save_income_type();
+    }
+
+    public function update_income_type()
+    {
+        return $this->Adminmodel->update_income_type();
+    }
+
+    public function delete_income_type()
+    {
+        if (isset($_REQUEST['income_id'])) {
+            $income_id = $_REQUEST['income_id'];
+        } else {
+            $income_id = null;
+        }
+        $res = $this->Adminmodel->delete_inome_type($income_id);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function income_type_edit()
+    {
+        $inc_typ_id = $this->uri->segment(3);
+        $this->header();
+        $data['income_types'] = $this->Adminmodel->get_income_types($inc_typ_id);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptypedetails'] = $this->Adminmodel->getemployeetypemasterdetails($id = '');
+        $this->load->view('masters/edit_income_type', $data);
+        $this->footer();
+    }
+
+    #END INCOME
+    #DEDUCTION
+
+    public function save_deduction_type()
+    {
+        return $this->Adminmodel->save_deduction_type();
+    }
+
+    public function update_deduction_type()
+    {
+        return $this->Adminmodel->update_deduction_type();
+    }
+
+    public function delete_deduction_type()
+    {
+        if (isset($_REQUEST['deduction_id'])) {
+            $deduction_id = $_REQUEST['deduction_id'];
+        } else {
+            $deduction_id = null;
+        }
+        $res = $this->Adminmodel->delete_deduction_type($deduction_id);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function deduction_type_edit()
+    {
+        $deduction_id = $this->uri->segment(3);
+        $this->header();
+        $data['deduction_types'] = $this->Adminmodel->get_deduction_types($deduction_id);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptypedetails'] = $this->Adminmodel->getemployeetypemasterdetails($id = '');
+        $this->load->view('masters/edit_deduction_type', $data);
+        $this->footer();
+    }
+
+    #END INCOME AND DEDUCTION REASON
+    #SAVE PAYSTRUCTURE
+    public function save_paystructure_type()
+    {
+        return $this->Adminmodel->save_paystructure_type();
+    }
+    #END SAVE PAYSTRUCTURE
+
+
+
+    #Get DEPARTMENT DETAILS
+
+    public function leavemaster(){
+		$this->verifylogin();
+		$this->header();
+		$data['financial'] = $this->Adminmodel->getfinancial_year_type_master();
+		$data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['leavelist'] = $this->Adminmodel->leavelist();
+        // print_r($data['leavelist']);exit;
+		$this->load->view('masters/leavemaster',$data);
+		$this->footer();	
+    }
+
+    public function get_departments_based_on_auth_type()
+    {
+        $data = $this->input->post();
+        //        print_r($data);exit;
+        if (isset($data['comp_id'])) {
+            $cmp_id = $data['comp_id'];
+        } else {
+            $cmp_id = null;
+        }
+        if (isset($data['branch_id'])) {
+            $branch_id = $data['branch_id'];
+        } else {
+            $branch_id = null;
+        }
+        //--------------NEW BY SHABABU
+        if (isset($data['div_id'])) {
+            $div_id = $data['div_id'];
+        } else {
+            $div_id = null;
+        }
+        //--------------NEW BY SHABABU
+        if (isset($data['auth_type']) && $data['auth_type'] == 1) { //BRANCH          
+            $branch_departments = $this->Adminmodel->get_department_by_auth_type($cmp_id, $branch_id);
+            //---------IF EMP BRANCH AND AUTHORISED BRANCH ARE HEAD OFFICE WE STOP SHOWING HR AND DIRECTORS
+            $get_head_ofc = $this->Adminmodel->getbranches_based_on_eligibility_state_wise($cmp_id, $div_id = null, $state_id = null, $type = null, $is_headoffice = 1);
+            $branch_array = array();
+            foreach($get_head_ofc as $get_hd_ofc){
+                array_push($branch_array,$get_hd_ofc->mxb_id);
+            }
+            if(in_array($branch_id,$branch_array)){
+                $branch_departments = $this->Adminmodel->get_department_by_auth_type($cmp_id, $hd_ofc_branch, $ishr = '0', $isdirector = '0');
+            }
+            //---------END IF EMP BRANCH AND AUTHORISED BRANCH ARE HEAD OFFICE WE STOP SHOWING HR AND DIRECTORS
+            echo json_encode($branch_departments);
+        } else if (isset($data['auth_type']) && $data['auth_type'] == 2) { //HEAD OFFICE
+            $get_head_ofc = $this->Adminmodel->getbranches_based_on_eligibility_state_wise($cmp_id, $div_id = null, $state_id = null, $type = null, $is_headoffice = 1);
+            // print_r($get_head_ofc);exit;
+            $branch_array = array();
+            foreach($get_head_ofc as $get_hd_ofc){
+                array_push($branch_array,$get_hd_ofc->mxb_id);
+            }
+            // print_r($branch_array);exit;
+            
+            // $hd_ofc_branch = $get_head_ofc[0]->mxb_id;
+            $hd_ofc_branch = $branch_array;
+            $ho_departments = $this->Adminmodel->get_department_by_auth_type($cmp_id, $hd_ofc_branch, $ishr = '0', $isdirector = '0');
+            echo json_encode($ho_departments);
+        } else if (isset($data['auth_type']) && $data['auth_type'] == 3) { //HR
+            $get_head_ofc = $this->Adminmodel->getbranches_based_on_eligibility_state_wise($cmp_id, $div_id = null, $state_id = null, $type = null, $is_headoffice = 1);
+            $branch_array = array();
+            foreach($get_head_ofc as $get_hd_ofc){
+                array_push($branch_array,$get_hd_ofc->mxb_id);
+            }
+            // print_r($branch_array);exit;
+            
+            // $hd_ofc_branch = $get_head_ofc[0]->mxb_id;
+            $hd_ofc_branch = $branch_array;
+            $get_head_ofc_hr_dept = $this->Adminmodel->get_department_by_auth_type($cmp_id, $hd_ofc_branch, $ishr = 1, $isdirector = null);
+            echo json_encode($get_head_ofc_hr_dept);
+        } else if (isset($data['auth_type']) && $data['auth_type'] == 4) { //DIRECTOR
+            $get_head_ofc = $this->Adminmodel->getbranches_based_on_eligibility_state_wise($cmp_id, $div_id = null, $state_id = null, $type = null, $is_headoffice = 1);
+            // $hd_ofc_branch = $get_head_ofc['mxb_id'];
+            $branch_array = array();
+            foreach($get_head_ofc as $get_hd_ofc){
+                array_push($branch_array,$get_hd_ofc->mxb_id);
+            }
+            // print_r($branch_array);exit;
+            
+            // $hd_ofc_branch = $get_head_ofc[0]->mxb_id;
+            $hd_ofc_branch = $branch_array;
+            $get_head_ofc_director_dept = $this->Adminmodel->get_department_by_auth_type($cmp_id, $hd_ofc_branch, $ishr = null, $isdirector = 1);
+            echo json_encode($get_head_ofc_director_dept);
+        } else if (isset($data['without_authtype'])) {
+            $get_head_ofc_director_dept = $this->Adminmodel->get_department_by_auth_type($cmp_id, $branch_id, $ishr = null, $isdirector = null, $div_id);
+            echo json_encode($get_head_ofc_director_dept);
+        }
+    }
+
+    #END Get DEPARTMENT DETAILS
+    #GET EMPLOYEE INFO BASED IN THE DEPARTMENTS
+    public function get_employee_info_based_on_departments()
+    {
+        
+        $data['cmpname'] = $_REQUEST['comp_id'];
+        $data['divname'] = "";
+
+        $data['emptype'] = "";
+        $data['cmpstate'] = "";
+        $data['emp_id'] = "";
+        $data['dept_code'] = $_REQUEST['dept_id'];
+        if (isset($_REQUEST['auth_type']) && $_REQUEST['auth_type'] == 1) { //BRANCH          
+            $data['brname'] = $_REQUEST['branch_id'];
+        } else if (isset($_REQUEST['auth_type']) && $_REQUEST['auth_type'] == 2) { //HEAD OFFICE
+            $get_head_ofc = $this->Adminmodel->getbranches_based_on_eligibility_state_wise($data['cmpname'], $div_id = null, $state_id = null, $type = null, $is_headoffice = 1);
+            
+            // print_r($get_head_ofc);exit;
+            $branch_array = array();
+            foreach($get_head_ofc as $get_hd_ofc){
+                array_push($branch_array,$get_hd_ofc->mxb_id);
+            }
+            // print_r($branch_array);exit;
+            // $hd_ofc_branch = $get_head_ofc[0]->mxb_id;
+            $hd_ofc_branch = $branch_array;
+            $data['brname'] = $hd_ofc_branch;
+        } else if (isset($_REQUEST['auth_type']) && $_REQUEST['auth_type'] == 3) { //HR
+            $get_head_ofc = $this->Adminmodel->getbranches_based_on_eligibility_state_wise($data['cmpname'], $div_id = null, $state_id = null, $type = null, $is_headoffice = 1);
+            // $hd_ofc_branch = $get_head_ofc['mxb_id'];
+            // $data['brname'] = $_REQUEST['branch_id'];
+            // print_r($get_head_ofc);exit;
+            $branch_array = array();
+            foreach($get_head_ofc as $get_hd_ofc){
+                array_push($branch_array,$get_hd_ofc->mxb_id);
+            }
+            // print_r($branch_array);exit;
+            $hd_ofc_branch = $branch_array;
+            $data['brname'] = $hd_ofc_branch;
+        } else if (isset($_REQUEST['auth_type']) && $_REQUEST['auth_type'] == 4) { //DIRECTOR
+            $get_head_ofc = $this->Adminmodel->getbranches_based_on_eligibility_state_wise($data['cmpname'], $div_id = null, $state_id = null, $type = null, $is_headoffice = 1);
+            // $hd_ofc_branch = $get_head_ofc['mxb_id'];
+            // $data['brname'] = $_REQUEST['branch_id'];
+            $branch_array = array();
+            foreach($get_head_ofc as $get_hd_ofc){
+                array_push($branch_array,$get_hd_ofc->mxb_id);
+            }
+            // print_r($branch_array);exit;
+            $hd_ofc_branch = $branch_array;
+            $data['brname'] = $hd_ofc_branch;
+        } else if (isset($_REQUEST['without_authtype'])) {
+            $data['brname'] = $_REQUEST['branch_id'];
+        }
+
+        // print_r($data);exit;
+        $emp_info = $this->Adminmodel->getemployeesinfo($data);
+        echo json_encode($emp_info);
+    }
+    #END GET EMPLOYEE INFO BASED IN THE DEPARTMENTS
+    #GET EMP DETAILS
+    public function getemployeesinfo()
+    {
+        $data = $this->input->post();
+        
+        $new_data['cmpname'] = $data['comp_id'];
+        if(isset($data['div_id'])){
+            $new_data['divname'] = $data['div_id'];
+        }
+        if(isset($data['branch_id'])){
+            $new_data['brname'] = $data['branch_id'];
+        }
+        if(isset($data['state_id'])){
+            $new_data['cmpstate'] = $data['state_id'];
+        }
+        if(isset($data['emptype'])){
+            $new_data['emptype'] = $data['emptype'];
+        }
+        $emp_data = $this->Adminmodel->getemployeesinfo($new_data);
+
+        echo json_encode($emp_data);
+        exit;
+    }
+    #END GET EMP DETAILS
+    public function savehoddetails()
+    {
+        $this->verifylogin();
+        $hoddata = $this->input->post();
+        $this->Adminmodel->savehoddetails($hoddata);
+    }
+    function getemployementtype()
+    {
+
+        if (isset($_REQUEST['emptype_id'])) {
+            $emptype_id = $_REQUEST['emptype_id'];
+        } else {
+            $emptype_id = null;
+        }
+        if (isset($_REQUEST['cmp_id'])) {
+            $cmp_id = $_REQUEST['cmp_id'];
+        } else {
+            $cmp_id = null;
+        }
+        $data = $this->Adminmodel->getemployeetypemasterdetails($emptype_id, $cmp_id);
+        echo json_encode($data);
+    }
+    function get_income_types()
+    {
+        // print_r($_REQUEST);
+        if (isset($_REQUEST['inc_id'])) {
+            $inc_id = $_REQUEST['inc_id'];
+        } else {
+            $inc_id = null;
+        }
+        if (isset($_REQUEST['cmp_id'])) {
+            $cmp_id = $_REQUEST['cmp_id'];
+        } else {
+            $cmp_id = null;
+        }
+        if (isset($_REQUEST['emp_type_id'])) {
+            $emp_type_id = $_REQUEST['emp_type_id'];
+        } else {
+            $emp_type_id = null;
+        }
+        $inc_type =  $this->Adminmodel->get_income_types($inc_id, $cmp_id, $emp_type_id);
+        echo json_encode($inc_type);
+    }
+    public function zonalmaster()
+    {
+        $this->verifylogin();
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divisiondetails'] = $this->Adminmodel->getdivisiondetails($id = '');
+        $data['zonaldetails'] = $this->Adminmodel->getzonaldetails($id = '');
+        $this->load->view('masters/zonal_master', $data);
+        $this->footer();
+    }
+    public function editzonalmaster()
+    {
+        $zonal_id = $this->uri->segment(3);
+        $this->verifylogin();
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divisiondetails'] = $this->Adminmodel->getdivisiondetails($id = '');
+        $data['zonaldetails'] = $this->Adminmodel->getzonaldetails($zonal_id);
+        $this->load->view('masters/edit_zonal_master', $data);
+        $this->footer();
+    }
+    public function savezonaldetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->savezonaldetails($userdata);
+    }
+    public function saveeditzonaldetails()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveeditzonaldetails($userdata);
+    }
+    public function getzonaldetails()
+    {
+        // echo "hi";exit;  
+        if (isset($_REQUEST['zonal_id'])) {
+            $zonal_id = $_REQUEST['zonal_id'];
+        } else {
+            $zonal_id = null;
+        }
+        if (isset($_REQUEST['cmp_id'])) {
+            $cmp_id = $_REQUEST['cmp_id'];
+        } else {
+            $cmp_id = null;
+        }
+        if (isset($_REQUEST['div_id'])) {
+            $div_id = $_REQUEST['div_id'];
+        } else {
+            $div_id = null;
+        }
+        $data =  $this->Adminmodel->getzonaldetails($zonal_id, $cmp_id, $div_id);
+        echo json_encode($data);
+    }
+    public function getbranchdetails()
+    {
+        if (isset($_REQUEST['cmp_id'])) {
+            $cmp_id = $_REQUEST['cmp_id'];
+        } else {
+            $cmp_id = null;
+        }
+        if (isset($_REQUEST['div_id'])) {
+            $div_id = $_REQUEST['div_id'];
+        } else {
+            $div_id = null;
+        }
+        if (isset($_REQUEST['is_zonal_ofc'])) {
+            $is_zonal_ofc = $_REQUEST['is_zonal_ofc'];
+        } else {
+            $is_zonal_ofc = null;
+        }
+        $data =  $this->Adminmodel->getbranchdetails($id = null, $cmp_id, $div_id, $is_zonal_ofc);
+        echo json_encode($data);
+    }
+    public function deletezonal()
+    {
+        $this->verifylogin();
+        $delid = $this->input->post('id');
+        $res = $this->Adminmodel->updatedeletezonalstatus($delid);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    public function getemployeetypemasterdetails()
+    {
+        if (isset($_REQUEST['id'])) {
+            $id = $_REQUEST['id'];
+        } else {
+            $id = null;
+        }
+        if (isset($_REQUEST['cmp_id'])) {
+            $cmp_id = $_REQUEST['cmp_id'];
+        } else {
+            $cmp_id = null;
+        }
+        $emp_type_data = $this->Adminmodel->getemployeetypemasterdetails($id, $cmp_id);
+        echo json_encode($emp_type_data);
+    }
+
+    public function leavetypes(){
+        $this->verifylogin();
+    	$this->header();
+    	$data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+    	$data['leave_type'] = $this->Adminmodel->getleavetype();
+    	$this->load->view('leave/leave_type',$data);
+    	$this->footer();	
+    }
+    
+    public function saveleavetypes(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveeditleavedetails($userdata);
+        if ($res == 1) {
+            echo 200; die();
+        } else {
+            echo 500; die();
+        }
+    }
+    
+    public function getleavetype()
+    {
+        if (isset($_REQUEST['leave_type_id'])) {
+            $leave_type_id = $_REQUEST['leave_type_id'];
+        } else {
+            $leave_type_id = null;
+        }
+        if (isset($_REQUEST['cmp_id'])) {
+            $cmp_id = $_REQUEST['cmp_id'];
+        } else {
+            $cmp_id = null;
+        }
+        if (isset($_REQUEST['is_earned_leave'])) {
+            $is_earned_leave = $_REQUEST['is_earned_leave'];
+        } else {
+            $is_earned_leave = null;
+        }
+        if (isset($_REQUEST['is_short_leave'])) {
+            $is_short_leave = $_REQUEST['is_short_leave'];
+        } else {
+            $is_short_leave = null;
+        }
+        if (isset($_REQUEST['is_optional_holiday'])) {
+            $is_optional_holiday = $_REQUEST['is_optional_holiday'];
+        } else {
+            $is_optional_holiday = null;
+        }
+        $get_leave_type = $this->Adminmodel->getleavetype($leave_type_id, $cmp_id, $is_earned_leave, $is_short_leave, $is_optional_holiday);
+        echo json_encode($get_leave_type);
+    }
+    
+    public function saveleaveassigning_master()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveleaveassigning_master($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    //--------------------------------End NEW BY SHABABU(04-01-2020)
+    //---------------------ADD LEAVE TYPE
+    public function saveleavetype_master()
+    {
+        $this->verifylogin();
+        $data = $this->input->post();
+        // print_r($userdata);die;
+        
+        $res =  $this->Adminmodel->saveleavetype_master($data);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    //---------------------END ADD LEAVE TYPE
+    public function save_gratuity_statutory(){
+        echo $this->Adminmodel->save_gratuity_statutory();exit;
+    }    
+    public function save_lta_statutory(){
+        echo $this->Adminmodel->save_lta_statutory();exit;
+    }    
+    public function save_mediclaim_statutory(){
+        echo $this->Adminmodel->save_mediclaim_statutory();exit;
+    }    
+    public function getvariablepayemployeementtype(){
+    	$userdata = $this->input->post();
+        if(isset($userdata['company'])){
+            $cmp_id = $userdata['company'];
+        }else{
+            $cmp_id = null;
+        }
+        if(isset($userdata['employeetype'])){
+            $emp_type_id = $userdata['employeetype'];
+        }else{
+            $emp_type_id = null;
+        }
+		$res = $this->Adminmodel->get_income_types($income_id = null, $cmp_id, $emp_type_id,$is_variablepay = 1);
+		if(count($res) > 0){
+			foreach ($res as $key => $value) {
+				echo '<option value="'.$value->mxincm_id.'~'.$value->mxincm_comp_id.'~'.$value->mxincm_emp_type_id.'~'.$value->mxincm_name.'">'.$value->mxincm_name.'</option>';
+			}
+		}else{
+			echo '<option value="">No Data In Table For Company & Employee Type</option>';
+		}
+    }
+    public function getemployesfrominfoforincentive(){
+        $userdata = $this->input->post();
+        $resemptypes = $this->Adminmodel->getemployeeslist($userdata);
+        if(count($resemptypes) > 0){
+            foreach ($resemptypes as $key1 => $value1) {
+				echo '<option value="'.$value1->mxemp_emp_id.'">'.$value1->mxemp_emp_fname . $value1->mxemp_emp_lname.' ('.$value1->mxemp_emp_id.')</option>';
+			}
+        }else{
+            echo '<option value="">No Data In Table For Employee Type</option>';
+        }
+    }
+    public function saveincentive(){
+    	$userdata = $this->input->post();
+    	$res = $this->Adminmodel->saveincentive($userdata);
+    	if($res == 1){
+    		echo '200'; die();
+    	}else{
+			echo '500'; die();
+    	}
+    }
+    
+// ----------------added30-12 --------
+    
+    public function employeeattendanceinfo(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $data['attnd'] = $this->Adminmodel->getemployeeattendancehistorywithuniqueid($userdata);
+        $data['punchhistory'] = $this->Adminmodel->punch_history($userdata);
+        $this->load->view('attendance/viewmodelpopup',$data);
+    }
+
+//---------------- end 30-12 --------------
+    
+    //-----------NEW BY HARISH
+    public function viewattendanceofemployees(){
+        $this->verifylogin();
+                $this->header();
+                $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+                $this->load->view('attendance/attendance',$data);
+                $this->footer();
+    }
+    public function getemployeeattendancehistory(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $data['attnd'] = $this->Adminmodel->getemployeesattendancehistory($userdata);
+        $data['userdata'] = $userdata;
+        $this->load->view('attendance/attendancelistview',$data);
+       }
+
+/*  ---------- commented on 01-01-2021 -----------------
+
+    public function getdetailedpunchreport(){
+        $userdata = $this->input->post();
+        $data['punchhistory'] = $this->Adminmodel->punch_history($userdata);
+        $this->load->view('attendance/punch_report',$data);
+    }
+    
+    */
+    
+    public function editemployeeattendance(){
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->editemployeeattendance($userdata);
+        if($res == 1){
+         echo '200'; die();
+        }else{
+            echo '400'; die();
+        }
+    }
+    // Leave Adjustment
+	public function leaveadjustment(){
+        $this->verifylogin();
+		$this->header();
+		$data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+		$data['emptypedetails'] = $this->Adminmodel->getemployeetypemasterdetails($id = '');
+		$this->load->view('leave/leaveadjustment',$data);
+		$this->footer();	
+	}
+    public function getemployeeleavesasperdata(){
+		$this->verifylogin();
+		$userdata = $this->input->post();
+		$data['absentemployees'] = $this->Adminmodel->leaveadjustment($userdata);
+		$data['currentleaves'] = $this->Adminmodel->getcurrentleaves();
+		$data['rolback'] = $this->Adminmodel->leaveadjrollback($userdata);
+		$this->load->view('attendance/displayfilterattendancehistory',$data);
+	}
+
+    public function leaveadjustrollback(){
+        $this->verifylogin();
+        $this->header(); 
+        $userdata = $this->input->post();
+        $res=$this->Adminmodel->leaveadjustrollback($userdata);
+        if($res == 1){
+            echo 200; die();
+        }else{
+            echo 500; die();
+        }
+
+    }
+    public function adjustmentleaverollback(){
+        $this->verifylogin();
+        $this->header(); 
+        $employeecode = $this->input->get('employeecode');
+        $ym = $this->input->get('ym');
+        $data['adjrollback'] = $this->Adminmodel->adjustmentleaverollback($employeecode,$ym);
+        $this->load->view('leave/adjustmentleaverollback',$data); 
+        $this->footer();
+    }
+
+
+
+	public function editleaveadjustment(){
+        $this->verifylogin();
+		$this->header();
+		$employeecode = $this->input->get('employeecode');
+		$ym = $this->input->get('ym');
+		$data['absentdays'] = $this->Adminmodel->editemployeeleaveadjustment($employeecode,$ym);
+		$data['currentleaves'] = $this->Adminmodel->editgetcurrentleaves($employeecode,$ym);
+		// $data['currentleaves'] = $this->Adminmodel->getcurrentleaves();
+
+	// echo '<pre>'; print_r($data['currentleaves']);exit;
+		$this->load->view('leave/editleaveadjustment',$data);
+		$this->footer();		
+	}
+
+	public function getemployeedatewiseattnd(){
+        $this->verifylogin();
+		$userdata = $this->input->post();
+		$data['exacttypes'] = $this->Adminmodel->getemployeedatewiseattnd($userdata);
+		// echo '<pre>'; print_r($data['exacttypes']);
+		$this->load->view('attendance/getexcatattendance',$data);
+		// print_r($res);
+	}
+
+	public function updateempleaveadjustment(){
+		$this->verifylogin();
+		$userdata = $this->input->post();
+		$res = $this->Adminmodel->updateempleaveadjustment($userdata);
+		if($res == 1){
+			echo '200';
+		}else if($res == 2){
+			echo '400';
+		}else{
+			echo $res;
+		}
+	}
+    // LEAVE ADJUSTMENT END HERE
+    public function saveeditleavetypedetails(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->saveeditleavedetails($userdata);
+        if($res == 1){
+            echo 200; die();
+        }else{
+            echo 500; die();
+        }
+
+    }
+
+
+    //-----------END NEW BY HARISH
+    
+
+//  -------------------added chandana 16-05-2021 ------------------
+
+    public function hodmaststatus(){ 
+        $this->verifylogin();
+        $id = $this->input->post('id');
+        $status = $this->input->post('status');
+        $res = $this->Adminmodel->hodmaststatus($id,$status);
+    }
+    
+    public function edithod(){
+            $this->verifylogin();
+    		$id = $this->uri->segment(3);
+    		$this->header();  
+            $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+            $data['hoddetails']=$this->Adminmodel->gethoddetails($id);
+            $this->load->view('masters/edithod',$data);
+    		$this->footer();
+    }
+    
+    public function editsavehoddetails(){
+        $this->verifylogin();
+        $this->header(); 
+        $data = $this->input->post();
+        $res=$this->Adminmodel->editsavehoddetails($data);
+        if($res == 1){
+            echo 200; die();
+        }else{
+            echo 500; die();
+        }
+    }
+
+// --------------------end added chandana 16-05-2021 --------------
+    public function increments(){
+        $this->verifylogin();
+        $this->header(); 
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emp_transfers'] = $this->Adminmodel->getAllIncrandTransfers();
+        $data['promotion_inc'] = $this->Adminmodel->getPromotionIncreamnent();
+        $data['special_inc'] = $this->Adminmodel->getSpeciaIncreamnent();
+        $data['arear_inc'] = $this->Adminmodel->getArearsIncreamnent();
+        // echo "<pre>";print_r($data['emp_transfers']);exit;
+        $data['divisiondetails'] = $this->Adminmodel->getdivisiondetails($id = '');
+        $this->load->view("employee/employeepromotionandarrears",$data);
+        $this->footer();
+    }
+     public function delete_arrear()
+    {
+        $arrear_id = $this->input->post('arrear_id');
+        $res = $this->Adminmodel->delete_arrear($arrear_id);
+    }
+     public function delete_special_increment()
+    {
+        $spl_inc_id = $this->input->post('spl_inc_id');
+        $res = $this->Adminmodel->delete_special_increment($spl_inc_id);
+    }
+    public function manual_sat_sun_mon_view(){
+        $this->verifylogin();
+        $this->header();	
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('cron/manual_sat_sun_mon_cron',$data);
+        $this->footer();
+    }
+    public function manual_update_resign_status(){
+        $this->verifylogin();
+        $this->header();	
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('cron/manual_update_resign_cron',$data);
+        $this->footer();
+    }
+    public function manual_public_holiday_absent_view(){
+        $this->verifylogin();
+        $this->header();	
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('cron/manual_public_holiday_absent',$data);
+        $this->footer();
+    }
+    public function transfer_cron(){
+        $this->verifylogin();
+        $this->header();	
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('cron/transfer_cron',$data);
+        $this->footer();
+    }
+    public function increments_cron(){
+        $this->verifylogin();
+        $this->header();	
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('cron/increment_cron',$data);
+        $this->footer();
+    }
+    public function misc_income()
+    {   
+        $this->verifylogin();
+        $this->header();
+        // $data['states'] = $this->Adminmodel->getstates_master();
+        // $data['tdsList'] = $this->Adminmodel->get_misc_income();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        // echo"<pre>";print_r($data);exit;
+        $this->load->view('masters/misc_income', $data);
+        $this->footer();
+    }
+    public function get_misc_income(){
+        $cmpname = $this->input->post('cmpname');
+        $monthyear = $this->input->post('monthyear');
+        if(!empty($monthyear)){
+            $monthyear = date('Ym',strtotime('01-'.$monthyear));
+        }
+        $emp_code = $this->input->post('emp_code');
+        $data['tdsList'] = $this->Adminmodel->get_misc_income('',$cmpname,$emp_code,$monthyear);
+        // echo"<pre>";print_r($data);exit;
+        $this->load->view('masters/misc_list.php',$data);
+    }
+    public function save_misc_income(){
+        $data = $this->input->post();
+        $this->Adminmodel->save_misc_income($data);
+    }
+    public function update_misc_income(){
+        $data = $this->input->post();
+        $orgCompid = $this->input->post('org_compid');
+        $org_empid = $this->input->post('org_empid');
+        $orgYearMonth = $this->input->post('org_yearmonth');
+        $editedYearMonth = date('Ym',strtotime('01-'.$this->input->post('misc_month_year')));
+        $paysheetStatusOrg = $this->Adminmodel->get_paysheet_generated_status($orgCompid, $orgYearMonth, $org_empid);
+        if(!$paysheetStatusOrg){
+            $message = "Paysheet Already generated for month and year($$orgYearMonth) for the selected employee";
+            getjsondata(0,$message);    
+        }
+        $paysheetStatusEdited = $this->Adminmodel->get_paysheet_generated_status($orgCompid, $editedYearMonth, $org_empid);
+        if(!$paysheetStatusEdited){
+            $message = "Paysheet Already generated for selected month and year($editedYearMonth) for the selected employee";
+            getjsondata(0,$message);    
+        }
+        
+        $this->Adminmodel->update_misc_income($data);
+    }
+    
+    	public function mailtoemployee(){
+		$emailid = "hkumar516@gmail.com";
+	    $config = Array(
+	    'protocol' => 'smtp',
+	    'smtp_host' => 'ssl://smtp.googlemail.com',
+	    'smtp_port' => 465,
+	    //'smtp_port' => 587,
+	    //'smtp_user' => 'maxwell.hr@gmail.com',
+	    'smtp_user' => 'developerhkumar@gmail.com',
+	    'smtp_pass' => 'sairam@143',
+	    'mailtype'  => 'html',
+	    'charset'   => 'iso-8859-1'
+	);
+	// $config['newline'] = "\r\n";
+		$this->load->library('email', $config);
+		//$this->email->set_newline("\r\n");
+		$this->email->set_newline(" \ r \ n ");
+
+
+		// Set to, from, message, etc.
+		$this->email->from('MAXWELL', 'MAXWELL');
+	    $this->email->to($emailid);
+
+	    $this->email->subject('Email Test');
+	    $this->email->message('Testing the email class.');
+		        
+		$result = $this->email->send();
+		     echo $this->email->print_debugger();
+
+	}
+	public function getdesignationdetails(){
+	    if(isset($_REQUEST['desg_id'])){
+	        $desg_id = $_REQUEST['desg_id'];
+	    }else{
+	        $desg_id = null;
+	    }
+	    if(isset($_REQUEST['cmp_id'])){
+	        $cmp_id = $_REQUEST['cmp_id'];
+	    }else{
+	        $cmp_id = null;
+	    }
+	    $desg_data = $this->Adminmodel->getdesignationdetails($desg_id,$cmp_id);
+	    if(isset($_REQUEST['flag']) && $_REQUEST['flag'] == "json"){
+	        echo json_encode($desg_data);
+	    }else{
+	        return $desg_data;
+	    }
+	    
+	}
+	public function getgradedetails(){
+	    if(isset($_REQUEST['grade_id'])){
+	        $grade_id = $_REQUEST['grade_id'];
+	    }else{
+	        $grade_id = null;
+	    }
+	    if(isset($_REQUEST['cmp_id'])){
+	        $cmp_id = $_REQUEST['cmp_id'];
+	    }else{
+	        $cmp_id = null;
+	    }
+	    $grade_data = $this->Adminmodel->getgradedetails($grade_id,$cmp_id);
+	    if(isset($_REQUEST['flag']) && $_REQUEST['flag'] == "json"){
+	        echo json_encode($grade_data);
+	    }else{
+	        return $grade_data;
+	    }
+	    
+	}
+	public function save_arrear_increament()
+    {
+        $data = $this->Adminmodel->save_arrear_increament();
+    }
+    public function save_special_increament()
+    {
+        $data = $this->Adminmodel->save_special_increament();
+    }
+    public function save_promotion_increament()
+    {
+        $data = $this->Adminmodel->save_promotion_increament();
+    }
+    
+    public function getPromotionIncreamnent()
+    {
+        
+        if(isset($_REQUEST['emp_code'])){
+            $emp_code = $_REQUEST['emp_code'];
+        }else{
+            $emp_code = null;
+        }
+        $data['promotion_inc'] = $this->Adminmodel->getPromotionIncreamnent($emp_code);
+        $this->load->view('increments/promotion_inc_table',$data);
+        
+    }
+    
+    public function getSpeciaIncreamnent()
+    {
+        if(isset($_REQUEST['emp_code'])){
+            $emp_code = $_REQUEST['emp_code'];
+        }else{
+            $emp_code = null;
+        }
+        $data['special_inc'] = $this->Adminmodel->getSpeciaIncreamnent($emp_code);
+        // print_r($data);exit;
+        $this->load->view('increments/special_inc_table',$data);
+    }
+    
+    public function getArearsIncreamnent()
+    {
+        if(isset($_REQUEST['emp_code'])){
+            $emp_code = $_REQUEST['emp_code'];
+        }else{
+            $emp_code = null;
+        }
+        $data['arears_inc'] = $this->Adminmodel->getArearsIncreamnent($emp_code);
+        $this->load->view('increments/areas_inc_table',$data);
+    }
+    
+    // --------------------------- added  11-july-2021 -------------------
+
+    public function leavehistroydetail()
+    {
+        $data = $this->input->post();
+        $res['emphist'] = $this->Adminmodel->leavehistroydetail($data);
+        $this->load->view('leave/leavedetailhistory',$res);
+            
+    }
+
+    public function leavetypehistorydet(){
+        $userdata = $this->input->post();
+        $data['dtblleavehist'] = $this->Adminmodel->leavetypehistorydet($userdata);
+        $this->load->view('leave/leavehistorydtdlpopup',$data);
+    }
+// --------------------  end added 11-july-2021 -----------------
+
+    public function get_notice_peiod_employees(){
+        $userdata = $this->input->post();
+        if(isset($userdata['employeecode']) && strlen($userdata['employeecode']) >0){
+            $data['emp_id'] = $userdata['employeecode'];
+        }
+        // echo $userdata['year'];exit;
+        if(isset($userdata['year']) && $userdata['year'] != null){
+            $data['year'] = $userdata['year'];
+        }
+        if(isset($userdata['month']) && $userdata['month'] != null){
+            $data['month'] = $userdata['month'];
+        }
+        if(isset($userdata['company']) && $userdata['company'] != null){
+            $data['cmpname'] = $userdata['company'];
+        }
+        if(isset($userdata['divison']) && $userdata['divison'] != null){
+            $data['divname'] = $userdata['divison'];
+        }
+        if(isset($userdata['state']) && $userdata['state'] != null){
+            $data['cmpstate'] = $userdata['state'];
+        }
+        if(isset($userdata['branch']) && $userdata['branch'] != null){
+            $data['brname'] = $userdata['branch'];
+        }
+        if(isset($userdata['resign_status']) && $userdata['resign_status'] != null){
+            $data['resign_status'] = $userdata['resign_status'];
+        }else{
+            $data['resign_status'] = 'N';//---->Default Get Notice Period Employees
+        }
+        
+        $final_data['notice_period_employees'] = $this->Adminmodel->get_notice_peiod_employees($data);
+        if(count($final_data['notice_period_employees']) <= 0){
+            echo "220";exit;
+        }
+        $this->load->view('FandF/fandflist_table',$final_data);
+        
+    }
+    //-------------------STATUTORY EDITS
+    public function bns_gratuity_edit()
+    {
+        $this->header();
+        $gratuity_id = $this->uri->segment(3);
+        // echo $gratuity_id;exit;
+        $data['gratuity_statutory'] = $this->Adminmodel->get_gratuity_master($gratuity_id);
+        // print_r($data['gratuity_statutory']);exit;
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $this->load->view('masters/edit_gratuity_statutory', $data);
+        $this->footer();
+    }
+    public function bns_lta_edit()
+    {
+        $this->header();
+        $lta_id = $this->uri->segment(3);
+        // echo $gratuity_id;exit;
+        $data['lta_statutory'] = $this->Adminmodel->get_lta_master($lta_id);
+        $cmp_id = $data['lta_statutory'][0]->mxlta_comp_id;
+        // print_r($data['lta_statutory']);exit;
+        $this->load->model("Mastermodels");
+        $data['grades'] = $this->Mastermodels->grademaster($cmp_id);
+        // print_r($data['grades']);exit;
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $this->load->view('masters/edit_lta_statutory', $data);
+        $this->footer();
+    }
+    public function bns_mediclaim_edit()
+    {
+        $this->header();
+        $mediclaim_id = $this->uri->segment(3);
+        // echo $mediclaim_id;exit;
+        $data['mediclaim_statutory'] = $this->Adminmodel->get_mediclaim_master($mediclaim_id);
+        // print_r($data['mediclaim_statutory']);exit;
+        
+        $cmp_id = $data['mediclaim_statutory'][0]->mxmediclaim_comp_id;
+        $this->load->model("Mastermodels");
+        $data['grades'] = $this->Mastermodels->grademaster($cmp_id);
+        // print_r($data['grades']);exit;
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $this->load->view('masters/edit_mediclaim_statutory', $data);
+        $this->footer();
+    }
+    public function delete_gratuity_statutory()
+    {
+        $delid_gratuity = $this->input->post('gratuity_id');
+        $res = $this->Adminmodel->delete_gratuity_statutory($delid_gratuity);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    public function delete_lta_statutory()
+    {
+        $delid_lta = $this->input->post('lta_id');
+        $res = $this->Adminmodel->delete_lta_statutory($delid_lta);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    public function delete_mediclaim_statutory()
+    {
+        $delid_mediclaim = $this->input->post('mediclaim_id');
+        $res = $this->Adminmodel->delete_mediclaim_statutory($delid_mediclaim);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    public function pay_structure_edit()
+    {
+        $this->header();
+        $pay_structure_id = $this->uri->segment(3);
+        // echo $gratuity_id;exit;
+        $data['pay_structure'] = $this->Adminmodel->get_only_pay_structure($pay_structure_id);
+        $data['pay_structure_child'] = $this->Adminmodel->get_only_pay_structure_child($pay_structure_id);
+        
+        $cmp_id = $data['pay_structure'][0]->mxps_comp_id;
+        $emp_type_id = $data['pay_structure'][0]->mxps_emptype_id;
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $data['income_types'] = $this->Adminmodel->get_income_types($income_id = null, $cmp_id, $emp_type_id, $is_variablepay = null);
+        // echo "<pre>";
+        // print_r($data['pay_structure_child']);exit;
+        $this->load->view('masters/edit_pay_structure', $data);
+        $this->footer();
+    }
+    public function delete_pay_structure()
+    {
+        $pay_struc_id = $this->input->post('pay_struc_id');
+        $res = $this->Adminmodel->delete_pay_structure($pay_struc_id);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    
+    //-------------------END STATUTORY EDITS
+    
+    public function circularmaster(){
+        $this->verifylogin();
+        $this->header();
+        $data['depart'] = $this->Adminmodel->departmentmaster();
+        $data['displaycircularmaster'] = $this->Adminmodel->getcircularmaster($id='');
+        $this->load->view('masters/create_circular', $data);
+        $this->footer();
+    }
+
+    public function savecirculardetails(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->savecirculardetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function editcircular(){
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $data['depart'] = $this->Adminmodel->departmentmaster();
+        $data['displaycircularmaster'] = $this->Adminmodel->getcircularmaster($id);
+        $this->header();
+        $this->load->view('masters/editcircular', $data);
+        $this->footer();
+    }
+
+    public function editcirculardetails(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->editsavecirculardetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    public function notificationmaster(){
+        $this->verifylogin();
+        $this->header();
+         $data['depart'] = $this->Adminmodel->departmentmaster();
+        $data['displaynotificationmaster'] = $this->Adminmodel->getnotificationmaster($id='');
+        $this->load->view('masters/create_notifications', $data);
+        $this->footer();
+    }
+
+    public function savenotificationdetails(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->savenotificationdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }   
+    }
+
+    public function editnotification(){
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $data['depart'] = $this->Adminmodel->departmentmaster();
+        $data['displaynotificationmaster'] = $this->Adminmodel->getnotificationmaster($id);
+        $this->header();
+        $this->load->view('masters/editnotification', $data);
+        $this->footer();
+    }
+
+    public function editnotificationdetails(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->editnotificationdetails($userdata);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }   
+    }    
+    
+    //------------------------ added 11-12-2021 ------------
+    
+    
+    public function employeerequesttype(){
+        $this->verifylogin();
+        $this->header();
+        $data['controller'] = $this;
+		$data['cmpmaster'] = $this->Adminmodel->getcompany_master();   
+        $data['emprequestdata'] = $this->Adminmodel->getemprequestdetails();     
+        $this->load->view('employeerequesttype/employeerequesttype',$data);
+        $this->footer();	
+    }
+
+public function getemprequesttype(){
+    $userdata = $this->input->post();
+    $data['emprequestdata'] = $this->Adminmodel->getemprequesttypedetails($userdata);
+    return $this->load->view('employeerequesttype/emprequesttypelist',$data);
+}
+
+    public function saveemployeerequesttype(){
+        $userdata = $this->input->post();
+        $resp = $this->Adminmodel->saveemployeerequesttype($userdata);
+    	if($resp == 1){
+    		echo '200';exit();
+    	}else{
+    		echo '400';exit();
+    	}        
+    }
+
+    public function editemprequest(){
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $this->header();
+        $data['states'] = $this->Adminmodel->getstates_master();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divmaster'] = $this->Adminmodel->getdivision_master();
+        $data['branchmaster'] = $this->Adminmodel->getbranch_master();
+        $data['emprequestdetails'] = $this->Adminmodel->editemprequestdetails($id);
+        $data['controller'] = $this;
+        //$data['options_table'] = $this->Adminmodel->options_table();  
+        $this->load->view('employeerequesttype/editemprequesttype', $data);
+        $this->footer();
+    }
+
+    public function editemployeerequesttype(){
+        $userdata = $this->input->post();
+        $resp = $this->Adminmodel->editemployeerequesttype($userdata);
+    	if($resp == 1){
+    		echo '300';exit();
+    	}else{
+    		echo '400';exit();
+        }
+    }
+
+    public function deleteemprequesttype(){
+        $this->verifylogin();
+        $delid = $this->input->post('id');
+        $res = $this->Adminmodel->deleteemprequesttypestatus($delid);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    public function delete_employement_type(){
+        $this->verifylogin();
+        $delid = $this->input->post('id');
+        $res = $this->Adminmodel->delete_employement_type($delid);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+
+    
+    // ------------------------- end added 11-12-2021 ----------
+    
+    //----------NEW BY SHABABU(22-12-2021)
+    public function update_authorisations()
+    {
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->update_authorisations($userdata);
+        // print_r($res);exit;
+        if ($res == "") {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    //----------END NEW BY SHABABU(22-12-2021)
+    
+    public function build_unpay_sal_month(){
+        $this->verifylogin();
+        $data['resign_date'] = $this->input->post('resign_date');
+        $data['relieve_date'] = $this->input->post('relieve_date');
+        $data['resign_status'] = $this->input->post('resign_status');
+        $this->load->view('employee/get_unpay_sal_months',$data);
+    }
+    
+    public function leave_addadmin(){
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['emptype'] = $this->Adminmodel->getemployeetypemaster();
+        $data['titlehead']="Leave Acumilation";
+        $this->load->view('mobiledispayscreens/leaveacumilate',$data);
+        $this->footer();
+    }
+
+    public function leaveacumilatelist(){
+        $userdata = $this->input->post();
+        $res['leaveacumilatelist'] =  $this->Adminmodel->leaveacumilatelist1($userdata);
+        $this->load->view('mobiledispayscreens/leaveacumilatelist',$res);
+    
+    }
+
+    public function leaveaddbalance(){
+        $userdata = $this->input->post();
+        $data =  $this->Adminmodel->leaveaddbalance($userdata);
+        echo $data;
+    }
+    
+    public function employeechange(){
+        $this->header();
+        $this->load->view('employee/employeeidchange');
+        $this->footer();
+    }
+
+    public function employeeidlist(){
+        $currentid = strtoupper($this->input->post('prevempid'));
+        $changesid = strtoupper($this->input->post('currentempid'));
+
+        $data['list'] =  $this->Adminmodel->empidlist($currentid,$changesid);
+        $this->load->view('employee/showempidtablelist',$data);
+
+    }
+   
+
+    public function editemployeeid(){
+        $currntempid = strtoupper($this->input->post('currntempid'));
+        $respcnt =  $this->Adminmodel->empidlist($currentid='',$currntempid);
+        if(count($respcnt) <= 0){
+            $prevempid = strtoupper($this->input->post('prevempid'));
+            $res =  $this->Adminmodel->editemployeeid($currntempid ,$prevempid); 
+        }else{
+            $res = 420;
+        }
+        echo $res;
+    }
+
+    public function deleteemployeeid(){
+        $prevempid = strtoupper($this->input->post('prevempid'));
+        $res =  $this->Adminmodel->deleteemployeeid($prevempid); 
+        echo $res;
+    }
+    
+     public function delete_salary(){
+        $this->verifylogin();
+        $this->header(); 
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divisiondetails'] = $this->Adminmodel->getdivisiondetails($id = '');
+        $this->load->view("Salaries/delete_salary",$data);
+        $this->footer();
+    }
+    
+    public function delete_emp_sal(){
+        $emp_data = $this->input->post();
+        // print_r($emp_data);exit;
+        $res =  $this->Salaries_model->delete_emp_sal($emp_data); 
+    }
+
+    
+    public function legalnotification(){
+        $this->verifylogin();
+        $this->header();
+        $data['controller'] = $this;
+        $userdata = $this->input->get();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['info'] = $this->Adminmodel->getlegalnotifications($userdata);
+        $this->load->view('masters/legalnotifications', $data);
+        $this->footer();       
+    }
+    
+    public function savelegalnotifications(){
+        $userdata = $this->input->post();
+        $resp = $this->Adminmodel->savelegalnotifications($userdata);
+    	if($resp == 1){
+    		echo '200';exit();
+    	}else{
+    		echo '400';exit();
+        }
+    }
+    
+    public function getlegalnotifications(){
+        $userdata = $this->input->post();
+        $data['info'] = $this->Adminmodel->getlegalnotifications($userdata);
+        // print_r($data['info']);
+        $this->load->view('masters/editlegalnotificationsform', $data);
+    }
+    
+    public function getlegalnotifications_log(){
+        $userdata = $this->input->post();
+        $data['info'] = $this->Adminmodel->getlegalnotifications_logo($userdata);
+        // print_r($data['info']);
+        $this->load->view('masters/legalnotifications_history_log', $data);
+    }
+    
+    public function updatelegalnotifications(){
+        $userdata = $this->input->post();
+        $resp = $this->Adminmodel->updatelegalnotifications($userdata);
+    	if($resp == 1){
+    		echo '200';exit();
+    	}else{
+    		echo '400';exit();
+        }
+    }
+    
+    public function allnotifications(){
+        $this->verifylogin();
+        $this->header();
+        $data['controller'] = $this;
+        $userdata = $this->input->get();
+        $data['info'] = $this->Adminmodel->allnotifications($userdata);
+        $this->load->view('masters/allnotifications', $data);
+        $this->footer(); 
+    }
+
+    public function downloadfiles(){
+        $this->verifylogin();
+        $file_name = $this->input->get('filename');
+        $res = $this->Adminmodel->getdocumenturl($file_name);
+        $file_name = $res[0]->doc_url;
+        $file_url = ROOTDOCUMENT.$file_name;
+        $orgfilename = explode('/',$file_name);
+        header('Content-Type: application/octet-stream');
+        header("Content-Transfer-Encoding: Binary"); 
+        header("Content-disposition: attachment; filename=\"".end($orgfilename)."\""); 
+        readfile($file_url);
+        exit;
+    }
+
+    public function deletefile(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->deletefile($userdata);
+    }
+    
+    public function addnewfilestodocument(){
+        $this->verifylogin();
+        $userdata = $this->input->post();
+        $res = $this->Adminmodel->addnewfilestodocument($userdata);  
+    }
+    
+    public function add_idcard(){
+        $this->header();
+        $data['idcards_data'] = $this->Adminmodel->get_idcard();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $this->load->view('idcard/add_idcard', $data);
+        $this->footer();
+    }
+    public function save_idcard(){
+        // $userdata = $this->input->post();
+        $resp = $this->Adminmodel->save_idcard();
+    }
+     public function edit_idcard($id_card_id){
+        $this->header();
+        $data['idcards_data'] = $this->Adminmodel->get_idcard($id_card_id);
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['idcard_id']  = $id_card_id;
+        $this->load->view('idcard/edit_idcard', $data);
+        $this->footer();
+    }
+    public function update_idcard(){
+        // $userdata = $this->input->post();
+        $resp = $this->Adminmodel->update_idcard();
+    }
+    public function delete_idcard()
+    {
+        if (isset($_REQUEST['income_id'])) {
+            $income_id = $_REQUEST['income_id'];
+            $res = $this->Adminmodel->delete_idcard($income_id);
+        } else {
+           echo 500;
+            die();
+        }
+        
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    public function check_session_expired() {
+         // Check if the session has expired
+        if (empty($this->session->userdata('user_id'))) {
+            // If the session has expired, return an error message
+            $response['status'] = 'error';
+            $response['message'] = 'Your session has expired. Please log in again.';
+        }else{
+             $response['status'] = 'success';
+            $response['message'] = 'Your session working Fine';
+        }
+         echo json_encode($response);
+    }
+    public function show_404_error(){
+        $this->header();
+        // You can load a custom 404 view here
+        $this->output->set_status_header('404');
+        $this->load->view('common/error-404');
+        $this->footer();
+    }
+    
+     public function getdepartmentData(){
+        $cmid = $this->input->post('companyid');
+        $data = $this->Adminmodel->departmentmaster($cmid);
+        echo json_encode($data); 
+    }
+    
+    public function edittds()
+    {
+        $this->verifylogin();
+        $id = $this->uri->segment(3);
+        $this->header();
+        $data['tdsData'] = $this->Adminmodel->get_misc_income($id);
+        $editedTDSid = $data['tdsData'][0]->mxemp_misc_inc_id;
+        $editedEmpid = $data['tdsData'][0]->mxemp_misc_inc_empcode;
+        $editedCompid = $data['tdsData'][0]->mxemp_misc_inc_comp_id;
+        $editedDivid = $data['tdsData'][0]->mxemp_misc_inc_div_id;
+        $editedStateid = $data['tdsData'][0]->mxemp_misc_inc_state_id;
+        $editedBranchid = $data['tdsData'][0]->mxemp_misc_inc_branch_id;
+        $editedMonthYear = $data['tdsData'][0]->mxemp_misc_inc_month_year;
+        // Extract the year (first 4 characters)
+        $year = substr($editedMonthYear, 0, 4);
+        // Extract the month (last 2 characters)
+        $month = substr($editedMonthYear, 4, 2);
+        
+        $data['monthYear'] = $month.'-'.$year;
+        $data['oldMonthYear'] = $editedMonthYear;
+        
+        $data['editedEmpid'] = $editedEmpid;
+        $data['editedTDSid'] = $editedTDSid;
+        $data['editedCompid'] = $editedCompid;
+        $data['editedDivid'] = $editedDivid;
+        $data['editedStateid'] = $editedStateid;
+        $data['editedBranchid'] = $editedBranchid;
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['divmaster'] = $this->Adminmodel->load_division($editedCompid);
+        $data['states'] = $this->Adminmodel->load_state($editedCompid, $editedDivid);
+        $data['branchdetails'] = $this->Adminmodel->load_branch($editedCompid, $editedDivid, $editedStateid);
+        // echo "<pre>";print_r($data);exit;
+        $this->load->view('masters/misc_edit.php', $data);
+        $this->footer();
+    }
+     public function delete_misc_income()
+    {
+        $delid_tds = $this->input->post('tdsid');
+        $res = $this->Adminmodel->delete_misc_income($delid_tds);
+        if ($res == 1) {
+            echo 200;
+            die();
+        } else {
+            echo 500;
+            die();
+        }
+    }
+    
+    public function misc_inc_deduction(){
+        $this->header();
+        $data['cmpmaster'] = $this->Adminmodel->getcompany_master();
+        $data['incentive'] = $this->Adminmodel->getincentivedetails();
+        $data['miscellaneous'] = $this->Adminmodel->getmiscellaneousdetails();
+        $this->load->view('Salaries/misc_income_deductions', $data);
+        $this->footer();
+    }
+}

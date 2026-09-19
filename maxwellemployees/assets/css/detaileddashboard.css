@@ -1,0 +1,516 @@
+/* =========================================
+   PAGE TITLE
+========================================= */
+
+.hrms_page_title{
+
+    font-size:28px;
+
+    font-weight:700;
+
+    margin-bottom:25px;
+
+    color:#111827;
+}
+
+/* =========================================
+   DASHBOARD CARD
+========================================= */
+
+.hrms_dashboard_card{
+
+    background:#ffffff;
+
+    border-radius:20px;
+
+    padding:20px;
+
+    box-shadow:0 5px 20px rgba(0,0,0,0.05);
+
+    height:100%;
+}
+
+.hrms_card_title{
+
+    font-size:18px;
+
+    font-weight:600;
+
+    margin-bottom:20px;
+
+    color:#111827;
+}
+
+/* =========================================
+   SUMMARY CARD
+========================================= */
+
+.hrms_leave_card{
+
+    background:#ffffff;
+
+    border-radius:20px;
+
+    padding:20px;
+
+    height:100%;
+
+    box-shadow:0 4px 20px rgba(0,0,0,0.06);
+
+    transition:all 0.3s ease;
+
+    border:1px solid #f1f5f9;
+}
+
+.hrms_leave_card:hover{
+
+    transform:translateY(-4px);
+
+    box-shadow:0 10px 24px rgba(0,0,0,0.08);
+}
+
+/* =========================================
+   CARD HEADER
+========================================= */
+
+.hrms_leave_header{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:15px;
+
+    margin-bottom:20px;
+}
+
+/* =========================================
+   ICON BOX
+========================================= */
+
+.hrms_leave_icon{
+
+    width:58px;
+
+    height:58px;
+
+    border-radius:16px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:24px;
+
+    color:#ffffff;
+
+    flex-shrink:0;
+}
+
+/* =========================================
+   BODY
+========================================= */
+
+.hrms_leave_body{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:12px;
+}
+
+/* =========================================
+   ROWS
+========================================= */
+
+.hrms_leave_row{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:14px 16px;
+
+    background:#f8fafc;
+
+    border-radius:14px;
+
+    cursor:pointer;
+
+    transition:all 0.3s ease;
+
+    font-weight:600;
+
+    border:1px solid #eef2f7;
+}
+
+.hrms_leave_row:hover{
+
+    background:#eef2ff;
+
+    transform:translateY(-2px);
+}
+
+/* =========================================
+   BADGES
+========================================= */
+
+.hrms_leave_row .badge{
+
+    font-size:12px;
+
+    padding:7px 12px;
+
+    border-radius:30px;
+
+    font-weight:600;
+}
+
+/* =========================================
+   EMPLOYEE TABLE
+========================================= */
+
+.hrms_employee_table thead{
+
+    background:#f1f5f9;
+}
+
+.hrms_employee_table th{
+
+    font-size:14px;
+
+    font-weight:600;
+
+    white-space:nowrap;
+}
+
+.hrms_employee_table td{
+
+    vertical-align:middle;
+
+    font-size:14px;
+}
+
+/* =========================================
+   EMPLOYEE PROFILE
+========================================= */
+
+.hrms_employee_info{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+}
+
+.hrms_employee_avatar{
+
+    width:50px;
+
+    height:50px;
+
+    border-radius:50%;
+
+    object-fit:cover;
+
+    border:2px solid #e5e7eb;
+}
+
+.hrms_employee_name{
+
+    font-size:14px;
+
+    font-weight:600;
+
+    color:#111827;
+}
+
+.hrms_employee_code{
+
+    font-size:12px;
+
+    color:#6b7280;
+}
+
+/* =========================================
+   STATUS BADGES
+========================================= */
+
+.hrms_status_badge{
+
+    padding:7px 14px;
+
+    border-radius:30px;
+
+    font-size:12px;
+
+    font-weight:600;
+}
+
+.hrms_status_present{
+
+    background:#dcfce7;
+
+    color:#166534;
+}
+
+.hrms_status_absent{
+
+    background:#fee2e2;
+
+    color:#991b1b;
+}
+
+.hrms_status_leave{
+
+    background:#fef3c7;
+
+    color:#92400e;
+}
+
+.hrms_status_late{
+
+    background:#ffedd5;
+
+    color:#c2410c;
+}
+
+/* =========================================
+   MODAL
+========================================= */
+
+.modal-content{
+
+    border:none;
+
+    border-radius:20px;
+}
+
+.modal-header{
+
+    border-bottom:1px solid #f1f5f9;
+}
+
+.modal-title{
+
+    font-weight:600;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media(max-width:768px){
+
+    .hrms_page_title{
+
+        font-size:22px;
+    }
+
+    .hrms_leave_card{
+
+        padding:16px;
+    }
+
+    .hrms_leave_icon{
+
+        width:50px;
+
+        height:50px;
+
+        font-size:20px;
+    }
+
+}
+
+/* =========================================
+   ATTENDANCE COLORS
+========================================= */
+
+.hrms_present_bg{
+
+    background:linear-gradient(
+        135deg,
+        #198754,
+        #43c47c
+    );
+}
+
+.hrms_absent_bg{
+
+    background:linear-gradient(
+        135deg,
+        #dc3545,
+        #ff6b6b
+    );
+}
+
+.hrms_onduty_bg{
+
+    background:linear-gradient(
+        135deg,
+        #0d6efd,
+        #4dabff
+    );
+}
+
+.hrms_ontour_bg{
+
+    background:linear-gradient(
+        135deg,
+        #17a2b8,
+        #5bc0de
+    );
+}
+
+.hrms_regulation_bg{
+
+    background:linear-gradient(
+        135deg,
+        #ff9800,
+        #ffc107
+    );
+}
+
+.hrms_weekoff_bg{
+
+    background:linear-gradient(
+        135deg,
+        #6c757d,
+        #adb5bd
+    );
+}
+
+.hrms_holiday_bg{
+
+    background:linear-gradient(
+        135deg,
+        #6f42c1,
+        #9b6dff
+    );
+}
+
+.hrms_lop_bg{
+
+    background:linear-gradient(
+        135deg,
+        #b02a37,
+        #e35d6a
+    );
+}
+
+/* =========================================
+   LEAVE COLORS
+========================================= */
+
+.hrms_cl_bg{
+
+    background:linear-gradient(
+        135deg,
+        #0d6efd,
+        #4dabff
+    );
+}
+
+.hrms_sl_bg{
+
+    background:linear-gradient(
+        135deg,
+        #dc3545,
+        #ff6b6b
+    );
+}
+
+.hrms_el_bg{
+
+    background:linear-gradient(
+        135deg,
+        #198754,
+        #43c47c
+    );
+}
+
+.hrms_ml_bg{
+
+    background:linear-gradient(
+        135deg,
+        #9c27b0,
+        #d66efd
+    );
+}
+
+.hrms_shrt_bg{
+
+    background:linear-gradient(
+        135deg,
+        #ff9800,
+        #ffc107
+    );
+}
+
+/* =====================================
+   SINGLE COUNT BOX
+===================================== */
+
+.hrms_single_count_box{
+
+    background:#f8fafc;
+
+    border-radius:16px;
+
+    padding:22px;
+
+    text-align:center;
+
+    cursor:pointer;
+
+    transition:0.3s;
+
+    border:1px solid #eef2f7;
+}
+
+.hrms_single_count_box:hover{
+
+    background:#eef2ff;
+
+    transform:translateY(-2px);
+}
+
+.hrms_single_count_label{
+
+    font-size:14px;
+
+    color:#6b7280;
+
+    margin-bottom:8px;
+
+    font-weight:500;
+}
+
+.hrms_single_count_value{
+
+    font-size:34px;
+
+    font-weight:700;
+
+    line-height:1;
+}
+
+/* =====================================
+   LATE COLOR
+===================================== */
+
+.hrms_late_bg{
+
+    background:linear-gradient(
+        135deg,
+        #dc3545,
+        #ff6b6b
+    );
+}

@@ -1,0 +1,138 @@
+$(document).ready(function () {
+    $("form#sal_assign_form").submit(function (e) {
+        e.preventDefault();
+        var cmp_id = $("#cmpname").val();
+        if (cmp_id == 0 || cmp_id == "") {
+            $("#cmpname").focus();
+            $('#cmpnameerror').html("Please Select Company Name");
+            return false;
+        } else {
+            $('#cmpnameerror').html("");
+        }
+        // var emptype = $("#emptype").val();
+        // if (emptype == 0 || emptype == "") {
+        //     $("#emptype").focus();
+        //     $('#emptype_error').html("Please Select Emplyement Type");
+        //     return false;
+        // } else {
+        //     $('#emptype_error').html("");
+        // }
+
+        var sal_month_year = $("#sal_month_year").val();
+        if (sal_month_year == "") {
+            $("#sal_month_year").focus();
+            $('#sal_month_year_error').html("Please Enter Income Name");
+            return false;
+        } else {
+            $('#sal_month_year_error').html("");
+        }
+
+        $.ajax({
+            async: false,
+            type: "POST",
+            async:false,
+            data: { cmp_id: cmp_id, sal_month_year: sal_month_year },
+            url: baseurl + 'salaries_controller/generate_salaries',
+            datatype: "html",
+            beforeSend: function(){
+                    // $('.ajax-loader').css("visibility", "visible");
+                    $('.ajax-loader-hide').addClass("ajax-loader");
+                    $('.ajax-loader').removeClass("ajax-loader-hide");
+            },
+            success: function (data) {
+                console.log(data);
+                    $('.ajax-loader').addClass("ajax-loader-hide");
+                    $('.ajax-loader-hide').removeClass("ajax-loader");
+                // $('.ajax-loader').css("visibility", "hidden");
+                var parsedData = JSON.parse(data);
+                // console.log(parsedData);
+                if(parsedData.status == 0){
+                    alert(parsedData.message);
+                    return false;
+                }else if(parsedData.status == 1){
+                    alert(parsedData.message);
+                    return false;
+                }else{
+                    alert("Some Error Getting Contact Developer...");
+                    return false;
+                }
+                // if(data == 200){
+                //     alert("Successfully Saved The Salary.....");
+                //     window.location.reload();
+                //     return false;
+                // }
+                // else if (data == 120) {
+                //     alert("Please Pass The Company Name or Month Year.....");
+                //     return false;
+                // }
+                // else if(data == 401){
+                //     alert("Something Went Wrong Please Try Again....");
+                //     return false;
+                // }
+                // else if (data == "pf") {
+                //     alert("We Got Two Arrays For The Pf Please Contact Developer For The Month-Year = " + sal_month_year + " ....");
+                //     return false;
+                // }
+                // else if (data == "esi") {
+                //     alert("We Got Two Arrays For The esi Please Contact Developer For The Month-Year = " + sal_month_year + " ....");
+                //     return false;
+                // }
+                // else if(data == 220){
+                //     alert("Attendance Table Not Exist For the Selected Month And Year Try to Create Attendance Table First...");
+                //     return false;
+                // }
+                // else if(data == 221){
+                //     alert("Paystructure Table Is Empty......");
+                //     return false;                
+                // }
+                // else if(data == 222){
+                //     alert("FOR THE ONE OF THE EMPLOYEE Paystructure Table Is Empty......");
+                //     return false;
+                // }
+                // else if(data == 223){
+                //     alert("Some One Deleted Employement Salary Type Table or Table Not Exist.....");
+                //     return false;
+                // }
+                // else if(data == 224){
+                //     alert("WE ARE GETTING PT MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......");
+                //     return false;
+                // }
+                // else if(data == 225){
+                //     alert("WE ARE GETTING PT SLAB MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......");
+                //     return false;
+                // }
+                // else if(data == 555){
+                //     alert("Data Already Exist You Cant Assign Salary Again....");
+                //     return false;
+                // }
+
+
+            }
+        });
+
+    });
+
+    // $("#cmpname").change(function(){
+    //     var cmp_id = $("#cmpname").val();
+    //     // alert(cmp_id);
+    //     var emptype_option = "<option value=''>-- Select Emp Type --</option>";
+    //     $.ajax({
+    //         async: false,
+    //         type: "POST",
+    //         data: { cmp_id: cmp_id },
+    //         url: baseurl + 'salaries_controller/getEmpType',
+    //         datatype: "html",
+    //         success: function (data) {            
+    //             var emp_type_data = JSON.parse(data);            
+    //             if(emp_type_data.length > 0){
+    //                 for(index in emp_type_data){
+    //                     var emp_type_index = emp_type_data[index];                    
+    //                     emptype_option += "<option value='"+emp_type_index.mxemp_ty_id+"'>"+emp_type_index.mxemp_ty_name+"</option>";
+    //                 }
+    //             }        
+    //         }
+    //       });    
+    //       $("#emptype").html(emptype_option);
+
+    // });
+});
