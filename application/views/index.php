@@ -21,7 +21,7 @@
      		 window.baseurl = "<?php echo base_url() ?>";
   		</script>
     </head>
-    <body class="account-page" style="background-image: url('<?php echo base_url() ?>assets/hrms.webp');  background-position: center;
+    <body class="account-page" style="background-image: url('<?php echo base_url() ?>assets/loginpagebackground.png');  background-position: center;
   background-repeat: no-repeat;
   background-size: cover;">
 	<?php //include 'loginanimation.php'; ?>
