@@ -20,6 +20,73 @@
         <script type="text/javascript">
 			window.baseurl = "<?php echo base_url() ?>";
 		</script>
+
+		<style>
+		html,
+		body {
+			width: 100%;
+			min-height: 100%;
+		}
+
+		body.account-page {
+			margin: 0;
+			min-height: 100vh;
+
+			background-image: url('<?php echo base_url(); ?>assets/img/uat-background.png');
+			background-size: cover;
+			background-position: center center;
+			background-repeat: no-repeat;
+			background-attachment: fixed;
+		}
+
+		/* Light overlay so login section remains clear */
+		body.account-page::before {
+			content: "";
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+
+			background: rgba(255, 255, 255, 0.20);
+
+			z-index: 0;
+			pointer-events: none;
+		}
+
+		.main-wrapper {
+			position: relative;
+			z-index: 1;
+			min-height: 100vh;
+		}
+
+		.account-content {
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.account-box {
+			background: rgba(255, 255, 255, 0.96);
+			border-radius: 10px;
+
+			box-shadow:
+				0 10px 35px rgba(0, 0, 0, 0.20);
+
+			backdrop-filter: blur(5px);
+			-webkit-backdrop-filter: blur(5px);
+		}
+
+		.account-logo {
+			margin-bottom: 20px;
+		}
+
+		.account-logo img {
+			max-width: 200px;
+			height: auto;
+		}
+	</style>
     </head>
     <body class="account-page">
 	<div id="alert-container"></div>
