@@ -46,6 +46,84 @@
 			    viewpage: 0
 			};
 		</script>
+		<style>
+			/* UAT Marquee */
+			.uat-marquee {
+				position: absolute;
+				left: 500px;
+				right: 475px;
+				top: 0;
+				height: 74px;
+
+				display: flex;
+				align-items: center;
+
+				overflow: hidden;
+				white-space: nowrap;
+
+				z-index: 1;
+				pointer-events: none;
+			}
+
+			.uat-marquee-text {
+				display: inline-block;
+
+				padding-left: 100%;
+
+				color: #dc3545;
+				font-size: 14px;
+				font-weight: 700;
+
+				white-space: nowrap;
+
+				animation: uat-marquee 18s linear infinite;
+			}
+
+			@keyframes uat-marquee {
+				from {
+					transform: translateX(0);
+				}
+
+				to {
+					transform: translateX(-100%);
+				}
+			}
+
+			/* Keep header menu above marquee */
+			.header .user-menu,
+			.header .mobile-user-menu {
+				position: relative;
+				z-index: 5;
+			}
+
+			.header .page-title-box {
+				position: relative;
+				z-index: 5;
+			}
+
+
+			/* Tablet */
+			@media (max-width: 1200px) {
+
+				.uat-marquee {
+					left: 400px;
+					right: 280px;
+				}
+
+				.uat-marquee-text {
+					font-size: 13px;
+				}
+			}
+
+
+			/* Mobile */
+			@media (max-width: 767px) {
+
+				.uat-marquee {
+					display: none;
+				}
+			}
+		</style>
     </head>
     <body>
 		<!-- Main Wrapper -->
@@ -88,6 +166,14 @@
 					<h3>MAXWELL ESS</h3>
                 </div>
 				<!-- /Header Title -->
+
+				<!-- UAT Marquee -->
+				<div class="uat-marquee">
+					<div class="uat-marquee-text">
+						⚠️ UAT ENVIRONMENT — YOU ARE CURRENTLY USING THE TESTING SERVER. PLEASE DO NOT ENTER OR PROCESS PRODUCTION DATA.
+					</div>
+				</div>
+				<!-- /UAT Marquee -->
 				
 				<a id="mobile_btn" class="mobile_btn" href="#sidebar"><i class="fa fa-bars"></i></a>
 				
