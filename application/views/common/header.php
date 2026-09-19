@@ -112,14 +112,16 @@ $url = $this->uri->segment(1); ?>
         }
         
 		.uat-marquee {
-			flex: 1;
+			position: absolute;
+			left: 510px;
+			right: 300px;
+			top: 0;
+			height: 74px;
 			overflow: hidden;
 			white-space: nowrap;
-			margin-left: 30px;
-			margin-right: 20px;
-			height: 40px;
-			line-height: 40px;
-			position: relative;
+			display: flex;
+			align-items: center;
+			z-index: 1;
 		}
 
 		.uat-marquee-text {
@@ -127,16 +129,17 @@ $url = $this->uri->segment(1); ?>
 			padding-left: 100%;
 			color: #fff;
 			font-size: 15px;
-			font-weight: bold;
-			animation: uat-marquee 15s linear infinite;
+			font-weight: 700;
+			white-space: nowrap;
+			animation: uat-marquee 18s linear infinite;
 		}
 
 		@keyframes uat-marquee {
-			0% {
+			from {
 				transform: translateX(0);
 			}
 
-			100% {
+			to {
 				transform: translateX(-100%);
 			}
 		}
