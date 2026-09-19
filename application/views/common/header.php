@@ -111,6 +111,36 @@ $url = $this->uri->segment(1); ?>
             z-index: 9999999;
         }
         
+		.uat-marquee {
+			width: 100%;
+			overflow: hidden;
+			background: #fff3cd;
+			border: 1px solid #ffeeba;
+			color: #856404;
+			height: 40px;
+			line-height: 40px;
+			white-space: nowrap;
+			position: relative;
+			z-index: 999;
+		}
+
+		.uat-marquee-text {
+			display: inline-block;
+			padding-left: 100%;
+			animation: uat-marquee 18s linear infinite;
+			font-weight: 600;
+			font-size: 14px;
+		}
+
+		@keyframes uat-marquee {
+			0% {
+				transform: translateX(0);
+			}
+
+			100% {
+				transform: translateX(-100%);
+			}
+		}
         </style>
 	<script type="text/javascript">
 		window.baseurl = "<?php echo base_url() ?>";
@@ -218,6 +248,14 @@ $url = $this->uri->segment(1); ?>
 
 		</div>
 		<!-- /Header -->
+
+		<!-- UAT Marquee -->
+		<div class="uat-marquee">
+			<div class="uat-marquee-text">
+				⚠️ UAT ENVIRONMENT — This is a testing environment. Please do not use this site for production transactions.
+			</div>
+		</div>
+		<!-- /UAT Marquee -->
 
 		<!-- Sidebar -->
 		<div class="sidebar" id="sidebar">
