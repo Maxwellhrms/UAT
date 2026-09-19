@@ -34,7 +34,8 @@ if (trim($scriptname[1]) == "index.php") {
 } else {
     $BaseURL = $WebPath . '/' . $scriptname[1];
 }
-$config['base_url'] = $BaseURL;
+//$config['base_url'] = $BaseURL;
+$config['base_url'] = 'https://maxwellhrms.in/HRMSUAT/maxwellemployees/';
 
 /*
 |--------------------------------------------------------------------------
