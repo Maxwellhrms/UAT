@@ -112,24 +112,23 @@ $url = $this->uri->segment(1); ?>
         }
         
 		.uat-marquee {
-			width: 100%;
+			flex: 1;
 			overflow: hidden;
-			background: #fff3cd;
-			border: 1px solid #ffeeba;
-			color: #856404;
+			white-space: nowrap;
+			margin-left: 30px;
+			margin-right: 20px;
 			height: 40px;
 			line-height: 40px;
-			white-space: nowrap;
 			position: relative;
-			z-index: 999;
 		}
 
 		.uat-marquee-text {
 			display: inline-block;
 			padding-left: 100%;
-			animation: uat-marquee 18s linear infinite;
-			font-weight: 600;
-			font-size: 14px;
+			color: #fff;
+			font-size: 15px;
+			font-weight: bold;
+			animation: uat-marquee 15s linear infinite;
 		}
 
 		@keyframes uat-marquee {
@@ -148,13 +147,7 @@ $url = $this->uri->segment(1); ?>
 </head>
 
 <body>
-			<!-- UAT Marquee -->
-		<div class="uat-marquee">
-			<div class="uat-marquee-text">
-				⚠️ UAT ENVIRONMENT — This is a testing environment. Please do not use this site for production transactions.
-			</div>
-		</div>
-		<!-- /UAT Marquee -->
+
     <div class="ajax-loader-hide loader"></div>
 	<!-- Main Wrapper -->
 	<div class="main-wrapper">
@@ -183,6 +176,14 @@ $url = $this->uri->segment(1); ?>
 				<h3>Maxwell</h3>
 			</div>
 			<!-- /Header Title -->
+
+			<!-- UAT Marquee -->
+			<div class="uat-marquee">
+				<div class="uat-marquee-text">
+					⚠️ UAT ENVIRONMENT — YOU ARE CURRENTLY USING THE TESTING SERVER. PLEASE DO NOT ENTER OR PROCESS PRODUCTION DATA.
+				</div>
+			</div>
+			<!-- /UAT Marquee -->
 
 			<a id="mobile_btn" class="mobile_btn" href="#sidebar"><i class="fa fa-bars"></i></a>
 
