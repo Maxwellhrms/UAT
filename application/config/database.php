@@ -76,9 +76,9 @@ $query_builder = TRUE;
 $db['default'] = array(
 	'dsn'	=> '',
 	'hostname' => 'localhost',
-	'username' => 'maxwellhrms_root',
-	'password' => 'sairam-143',
-	'database' => 'maxwellhrms_hr',
+	'username' => 'maxwellhrms_uat',
+	'password' => 'J,K5V2=b8{lS*._h',
+	'database' => 'maxwellhrms_uat',
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,
