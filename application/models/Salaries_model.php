@@ -8576,6 +8576,7 @@ class Salaries_model extends Adminmodel
 
                         //-----------------NEW BY SHABABU(24-09-2022)
                         $leaves_data = $this->get_leaves_count_data($emp_code, $year . "_" . $month);
+
                         // print_r($leaves_data);exit;
                         /*$present_days = $present_days_from_attendance = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present + $leaves_data[0]->First_Half_Present_Cl_Applied + $leaves_data[0]->Second_Half_Present_Cl_Applied + $leaves_data[0]->First_Half_Present_Sl_Applied + $leaves_data[0]->Second_Half_Present_Sl_Applied + $leaves_data[0]->First_Half_Present_El_Applied + $leaves_data[0]->Second_Half_Present_El_Applied + $leaves_data[0]->First_Half_Present_AR_Applied + $leaves_data[0]->Second_Half_Present_AR_Applied + $leaves_data[0]->First_Half_Present_OD_Applied + $leaves_data[0]->Second_Half_Present_OD_Applied + $leaves_data[0]->First_Half_Present_OT_Applied + $leaves_data[0]->Second_Half_Present_OT_Applied + $leaves_data[0]->First_Half_Present_SHRT_Applied + $leaves_data[0]->Second_Half_Present_SHRT_Applied + $leaves_data[0]->regulation_full_day + $leaves_data[0]->First_Half_regulation + $leaves_data[0]->Second_Half_regulation + $leaves_data[0]->onduty_full_day + $leaves_data[0]->First_Half_onduty + $leaves_data[0]->Second_Half_onduty + $leaves_data[0]->ot_full_day + $leaves_data[0]->First_Half_ot + $leaves_data[0]->Second_Half_ot + $leaves_data[0]->Shortleave + $leaves_data[0]->First_Half_Shortleave + $leaves_data[0]->Second_Half_Shortleave;*/
 
@@ -9582,7 +9583,7 @@ class Salaries_model extends Adminmodel
                                          * ------------------------------------------------- */
                                         if ($month_no === 9) {
                                             /** April -> September */
-                                            $pt_gross = $this->get_employee_pt_period_gross(
+                                             $pt_gross = $this->get_employee_pt_period_gross(
                                                 $emp_code,
                                                 $emp_employee_type,
                                                 (int)$year,
@@ -9590,6 +9591,8 @@ class Salaries_model extends Adminmodel
                                                 (int)$year,
                                                 9
                                             );
+
+                                            $pt_gross = (int)$pt_gross;
 
                                             /** -------------------------------------------------
                                              * MARCH
@@ -9604,6 +9607,7 @@ class Salaries_model extends Adminmodel
                                                 (int)$year,
                                                 3
                                             );
+                                            $pt_gross = (int)$pt_gross;
                                         } else {
                                             $pt_amount    = 0;
                                             $calculate_pt = false;
@@ -9638,10 +9642,10 @@ class Salaries_model extends Adminmodel
                                 } elseif ($state_code === 18) {
 
                                     /** Current month's gross. */
-                                    $pt_gross = (float)$actual_gross;
+                                    $pt_gross = (int)$actual_gross;
                                     $calculate_pt = true;
                                 } else {
-                                    $pt_gross = (float)$actual_gross;
+                                    $pt_gross = (int)$actual_gross;
                                     $calculate_pt = true;
                                 }
 
@@ -9669,7 +9673,7 @@ class Salaries_model extends Adminmodel
                                      * The slab function selects the row based on gross
                                      * range, not on month for Karnataka/other states.
                                      */
-                                    $pt_slab_rate_array = $this->getPt_slab_rates_for_sal_new(
+                                     $pt_slab_rate_array = $this->getPt_slab_rates_for_sal_new(
                                         $pt_id,
                                         $emp_comp_code,
                                         $emp_div_code,
@@ -11301,36 +11305,232 @@ class Salaries_model extends Adminmodel
                         // print_r($new_pt_filtered_array);
                         // exit;
                         // echo count($new_pt_filtered_array);exit;
+                        
+                        // Code UPDATED BY VARAPRASAD for The PT SLABS and monthly calculation for KARNATAKA & TAMILNADU
+                        // UPDATED ON 28/OCT/2026
+                        
                         if (count($new_pt_filtered_array) == 1) {
-                            $pt_id = $new_pt_filtered_array[0]->mxpt_id;
-                            $pt_no = $new_pt_filtered_array[0]->mxpt_pt_in_no;
-                            $pt_type = $new_pt_filtered_array[0]->mxpt_pt_type;
-                            $pt_year_type = $new_pt_filtered_array[0]->mxpt_year_type;
-                            // echo $actual_gross;exit;
-                            $pt_slab_rate_array = $this->getPt_slab_rates_for_sal($pt_id, $emp_comp_code, $emp_div_code, $emp_state_code, $emp_branch_code, $emp_employee_type, $pt_year_type, $month, $actual_gross, $pt_type);
 
-                            // echo count($pt_slab_rate_array);exit;
-                            if (count($pt_slab_rate_array) == 1) {
-                                $pt_amount = $pt_slab_rate_array[0]->mxpt_slb_amount;
-                            } else if (count($pt_slab_rate_array) > 1) {
-                                // print_r($pt_slab_rate_array);
-                                // exit;
-                                $this->db->trans_rollback();
-                                $message = "WE ARE GETTING PT SLAB MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......";
-                                getjsondata(0,$message);
-                                // echo "225";
-                                // $this->rollback();
-                                // exit;
+                            /*
+                             * =========================================================
+                             * PT MASTER DETAILS
+                             * =========================================================
+                             */
+                            $pt_id        = $new_pt_filtered_array[0]->mxpt_id;
+                            $pt_no        = $new_pt_filtered_array[0]->mxpt_pt_in_no;
+                            $pt_type      = (int)$new_pt_filtered_array[0]->mxpt_pt_type;
+                            $pt_year_type = $new_pt_filtered_array[0]->mxpt_year_type;
+
+                            /*
+                             * State codes:
+                             * Karnataka  = 18
+                             * Tamil Nadu = 31
+                             */
+                            $state_code = (int)$emp_state_code;
+
+
+                            /*
+                             * =========================================================
+                             * DEFAULT VALUES
+                             * =========================================================
+                             *
+                             * For monthly / other states:
+                             *
+                             *     PT gross = current month's actual gross
+                             *
+                             * For Tamil Nadu:
+                             *
+                             *     PT gross will be replaced by six-month total
+                             *     in March / September.
+                             */
+                            $pt_gross     = (float)$actual_gross;
+                            $calculate_pt = true;
+
+
+                            /*
+                             * =========================================================
+                             * TAMIL NADU - STATE 31
+                             * =========================================================
+                             * Tamil Nadu PT Type 3:
+                             *     September:
+                             *         April -> September gross
+                             *     March:
+                             *         October -> March gross
+                             *     Other months:
+                             *         No PT
+                             */
+                            if ($state_code === 31) {
+
+                                /* * Tamil Nadu should use Half-Yearly PT. */
+                                if ($pt_type === 3) {
+                                    $month_no = (int)$month;
+                                    /** -------------------------------------------------
+                                     * SEPTEMBER
+                                     * ------------------------------------------------- */
+                                    if ($month_no === 9) {
+                                        /** April -> September */
+                                        $pt_gross = $this->get_employee_pt_period_gross(
+                                            $emp_code,
+                                            $emp_employee_type,
+                                            (int)$year,
+                                            4,
+                                            (int)$year,
+                                            9
+                                        );
+
+                                        $pt_gross = (int)$pt_gross;
+
+                                        /** -------------------------------------------------
+                                         * MARCH
+                                         * -------------------------------------------------*/
+                                    } elseif ($month_no === 3) {
+                                        /** October previous year -> March current year */
+                                        $pt_gross = $this->get_employee_pt_period_gross(
+                                            $emp_code,
+                                            $emp_employee_type,
+                                            (int)$year - 1,
+                                            10,
+                                            (int)$year,
+                                            3
+                                        );
+                                        $pt_gross = (int)$pt_gross;
+                                    } else {
+                                        $pt_amount    = 0;
+                                        $calculate_pt = false;
+                                    }
+
+                                } else {
+
+                                    /*
+                                     * Tamil Nadu is configured for Half-Yearly PT.
+                                     *
+                                     * Do not calculate monthly PT.
+                                     */
+                                    $pt_amount    = 0;
+                                    $calculate_pt = false;
+                                }
+
+
+                                /** =========================================================
+                                 * KARNATAKA - STATE 18
+                                 * =========================================================
+                                 * Karnataka is MONTHLY.
+                                 * IMPORTANT:
+                                 * Month is NOT used to find the salary slab.
+                                 * Salary slab is ALWAYS selected using:
+                                 *     mxpt_slb_start_range
+                                 *     mxpt_slb_end_range
+                                 * After finding the applicable slab:
+                                 *
+                                 *     February = ₹300
+                                 *     Other    = master amount
+                                 */
+                            } elseif ($state_code === 18) {
+
+                                /** Current month's gross. */
+                                $pt_gross = (int)$actual_gross;
+                                $calculate_pt = true;
                             } else {
-                                $pt_amount = 0;
+                                $pt_gross = (int)$actual_gross;
+                                $calculate_pt = true;
+                            }
+
+                            /*
+                             * =========================================================
+                             * PT SLAB CALCULATION
+                             * =========================================================
+                             */
+                            if ($calculate_pt) {
+                                /*
+                                 * IMPORTANT:
+                                 * We pass month as NULL for:
+                                 *     Karnataka
+                                 *     Other states
+                                 * because month must NOT participate in slab selection.
+                                 * Tamil Nadu receives its deduction month because
+                                 * its master configuration is period-specific.
+                                 */
+                                if ($state_code === 31) {
+                                    $slab_month = (int)$month;
+                                } else {
+                                    $slab_month = null;
+                                }
+                                /** Get salary slab.
+                                 * The slab function selects the row based on gross
+                                 * range, not on month for Karnataka/other states.
+                                 */
+                                $pt_slab_rate_array = $this->getPt_slab_rates_for_sal_new(
+                                    $pt_id,
+                                    $emp_comp_code,
+                                    $emp_div_code,
+                                    $emp_state_code,
+                                    $emp_branch_code,
+                                    $emp_employee_type,
+                                    $pt_year_type,
+                                    $slab_month,
+                                    $pt_gross,
+                                    $pt_type
+                                );
+
+
+                                /** =====================================================
+                                 * EXACTLY ONE SLAB
+                                 * =====================================================*/
+                                if (count($pt_slab_rate_array) === 1) {
+
+                                    $pt_amount = (float)$pt_slab_rate_array[0]->mxpt_slb_amount;
+
+
+                                    /* =================================================
+                                     * KARNATAKA FEBRUARY SPECIAL RULE
+                                     * =================================================
+                                     * Only State 18. & Only February.
+                                     * The salary slab has already been determined from
+                                     * the gross range above.
+                                     * For now February amount is ₹300.
+                                     * This is the ONLY hard-coded PT amount in the
+                                     * implementation.
+                                     */
+                                    if ($state_code === 18 && (int)$month === 2) {
+                                        $pt_amount = 300;
+                                    }
+
+                                    /** =========================================================
+                                     * CURRENT MONTH SALARY VALIDATION
+                                     * =========================================================
+                                     * $actual_gross = current month's actual gross.
+                                     * If employee has no salary this month:
+                                     *     actual gross = 0
+                                     * means PT cannot be deducted.
+                                     *
+                                     * Also, if current month's gross is less than the
+                                     * calculated PT amount, do not deduct PT.
+                                     */
+                                    $current_month_gross = (float)$actual_gross;
+
+                                    if (
+                                        $current_month_gross <= 0 ||
+                                        $current_month_gross < $pt_amount
+                                    ) {
+
+                                        $pt_amount = 0;
+                                    }
+
+
+                                } elseif (count($pt_slab_rate_array) > 1) {
+                                    $this->db->trans_rollback();
+                                    $message = "WE ARE GETTING PT SLAB MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......";
+                                    getjsondata(0, $message);
+                                    exit;
+                                } else {
+                                    $pt_amount = 0;
+                                }
                             }
                         } else {
                             $this->db->trans_rollback();
-                            // echo "224"; //---->If we get two arrays for pt we will fire error message
                             $message = "WE ARE GETTING PT MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......";
-                            getjsondata(0,$message);
-                            // $this->rollback();
-                            // exit;
+                            getjsondata(0, $message);
+                            exit;
                         }
                     } else {
                         $pt_amount = 0;
@@ -11553,8 +11753,8 @@ class Salaries_model extends Adminmodel
                     //-----------NEW BY SHABABU(30-06-2022)
 
                     $final_comp_esi_cont_basic = rounding_number(($esi_comp_cont_on_basic + $esi_comp_cont_on_hra),$esi_comp_cont_round_type);
-                    $final_array['mxsal_esi_emp_cont'] = $final_emp_esi_cont_basic;
-                    $final_array['mxsal_esi_comp_cont'] = $final_comp_esi_cont_basic;
+                    $final_array['mxsal_esi_emp_cont'] = isset($final_emp_esi_cont_basic) && isset($final_emp_esi_cont_basic) ? $final_emp_esi_cont_basic : 0;
+                    $final_array['mxsal_esi_comp_cont'] = isset($final_comp_esi_cont_basic) && isset($final_comp_esi_cont_basic) ? $final_comp_esi_cont_basic : 0;
                     //-----------End NEW BY SHABABU(30-06-2022)
                     // $final_array['mxsal_esi_emp_cont'] = $esi_emp_cont_on_basic + $esi_emp_cont_on_hra;
                     // $final_array['mxsal_esi_comp_cont'] = $esi_comp_cont_on_basic + $esi_comp_cont_on_hra;
@@ -12886,47 +13086,358 @@ class Salaries_model extends Adminmodel
                         // print_r($new_pt_filtered_array);
                         // exit;
                         // echo count($new_pt_filtered_array);exit;
+                        // Code UPDATED BY VARAPRASAD for The PT SLABS and monthly calculation for KARNATAKA & TAMILNADU
+                        // UPDATED ON 10/NOV/2026
                         if (count($new_pt_filtered_array) == 1) {
-                            $pt_id = $new_pt_filtered_array[0]->mxpt_id;
-                            $pt_no = $new_pt_filtered_array[0]->mxpt_pt_in_no;
-                            $pt_type = $new_pt_filtered_array[0]->mxpt_pt_type;
-                            $pt_year_type = $new_pt_filtered_array[0]->mxpt_year_type;
-                            // echo $actual_gross;exit;
-                            // $pt_slab_rate_array = $this->getPt_slab_rates_for_sal($pt_id, $emp_comp_code, $emp_div_code, $emp_state_code, $emp_branch_code, $emp_employee_type, $pt_year_type, $month, $actual_gross, $pt_type);
-                            $original_pt_slab_rate_array = $this->getPt_slab_rates_for_sal($pt_id, $emp_comp_code, $emp_div_code, $emp_state_code, $emp_branch_code, $emp_employee_type, $pt_year_type, $month, $original_actual_gross, $pt_type);
-                            // print_r($original_pt_slab_rate_array);exit;
-                            //--------------NEW BY SHABABU(19-09-2021)
-                            // $curr_sal_plus_arrears = $arear_amount + $emp_current_sal;
-                            // echo $curr_sal_plus_arrears;exit;
-                            // $pt_slab_rate_array_for_current_salary = $this->getPt_slab_rates_for_sal($pt_id, $emp_comp_code, $emp_div_code, $emp_state_code, $emp_branch_code, $emp_employee_type, $pt_year_type, $month, $emp_current_sal, $pt_type);
-                            $combined_actual_gross = $original_actual_gross + $actual_gross;
-                            $pt_slab_rate_array_for_combined_salary = $this->getPt_slab_rates_for_sal($pt_id, $emp_comp_code, $emp_div_code, $emp_state_code, $emp_branch_code, $emp_employee_type, $pt_year_type, $month, $combined_actual_gross, $pt_type);
-                            // $pt_amount_current_sal = $pt_slab_rate_array_for_current_salary[0]->mxpt_slb_amount;
-                            // $pt_amount_updated_sal = $pt_slab_rate_array_for_updated_salary[0]->mxpt_slb_amount;
-                            $pt_amount_original_sal = $original_pt_slab_rate_array[0]->mxpt_slb_amount;
-                            $pt_amount_combined_sal = $pt_slab_rate_array_for_combined_salary[0]->mxpt_slb_amount;
 
-                            // echo "PT Amount Current Sal = ".$pt_amount_current_sal.", PT Amount Updated Sal =".$pt_amount_updated_sal;exit;
-                            //--------------NEW BY SHABABU(19-09-2021)
-                            // echo count($pt_slab_rate_array);exit;
-                            if (count($original_pt_slab_rate_array) == 1) {
-                                if($pt_amount_original_sal != $pt_amount_combined_sal){
-                                    $pt_amount = $pt_amount_combined_sal - $pt_amount_original_sal;
-                                }else{
-                                    // $pt_amount = $pt_slab_rate_array[0]->mxpt_slb_amount;
+                            /*
+                             * =========================================================
+                             * PT MASTER DETAILS
+                             * =========================================================
+                             */
+                            $pt_id        = $new_pt_filtered_array[0]->mxpt_id;
+                            $pt_no        = $new_pt_filtered_array[0]->mxpt_pt_in_no;
+                            $pt_type      = (int)$new_pt_filtered_array[0]->mxpt_pt_type;
+                            $pt_year_type = $new_pt_filtered_array[0]->mxpt_year_type;
+
+                            /*
+                             * =========================================================
+                             * STATE DETAILS
+                             * =========================================================
+                             *
+                             * Karnataka  = 18
+                             * Tamil Nadu = 31
+                             */
+                            $state_code = (int)$emp_state_code;
+                            $month_no   = (int)$month;
+                            $year_no    = (int)$year;
+
+                            /*
+                             * =========================================================
+                             * INITIAL VALUES
+                             * =========================================================
+                             *
+                             * original_actual_gross = Original salary gross
+                             * actual_gross          = Arrear gross
+                             *
+                             * Combined gross = Original gross + Arrear gross
+                             */
+                            $original_actual_gross = (float)$original_actual_gross;
+                            $arrear_actual_gross   = (float)$actual_gross;
+
+                            $original_pt_gross = $original_actual_gross;
+                            $combined_pt_gross = $original_actual_gross + $arrear_actual_gross;
+
+                            $pt_amount = 0;
+
+                            /*
+                             * =========================================================
+                             * TAMIL NADU - STATE 31
+                             * =========================================================
+                             *
+                             * PT Type 3 - Half Yearly
+                             *
+                             * September:
+                             *     April -> September cumulative gross
+                             *
+                             * March:
+                             *     October previous year -> March current year
+                             *
+                             * Other months:
+                             *     No PT
+                             */
+                            if ($state_code === 31) {
+
+                                if ($pt_type === 3) {
+
+                                    /*
+                                     * -------------------------------------------------
+                                     * SEPTEMBER - APRIL TO SEPTEMBER
+                                     * -------------------------------------------------
+                                     */
+                                    if ($month_no === 9) {
+
+                                        $original_pt_gross = $this->get_employee_pt_period_gross(
+                                            $emp_code,
+                                            $emp_employee_type,
+                                            $year_no,
+                                            4,
+                                            $year_no,
+                                            9
+                                        );
+
+                                        $original_pt_gross = (float)$original_pt_gross;
+
+                                        /*
+                                         * Add arrear gross to the original cumulative
+                                         * six-month gross.
+                                         */
+                                        $combined_pt_gross = $original_pt_gross + $arrear_actual_gross;
+
+                                    }
+
+                                    /*
+                                     * -------------------------------------------------
+                                     * MARCH - OCTOBER TO MARCH
+                                     * -------------------------------------------------
+                                     */
+                                    elseif ($month_no === 3) {
+
+                                        $original_pt_gross = $this->get_employee_pt_period_gross(
+                                            $emp_code,
+                                            $emp_employee_type,
+                                            $year_no - 1,
+                                            10,
+                                            $year_no,
+                                            3
+                                        );
+
+                                        $original_pt_gross = (float)$original_pt_gross;
+
+                                        /*
+                                         * Add arrear gross to the original cumulative
+                                         * six-month gross.
+                                         */
+                                        $combined_pt_gross = $original_pt_gross + $arrear_actual_gross;
+
+                                    }
+
+                                    /*
+                                     * -------------------------------------------------
+                                     * OTHER MONTHS - NO PT
+                                     * -------------------------------------------------
+                                     */
+                                    else {
+
+                                        $pt_amount = 0;
+
+                                    }
+
+                                } else {
+
+                                    /*
+                                     * Tamil Nadu supports Half-Yearly PT Type 3 only.
+                                     */
                                     $pt_amount = 0;
+
                                 }
-                            } else if (count($original_pt_slab_rate_array) > 1) {
-                                // print_r($pt_slab_rate_array);
-                                // exit;
-                                $message = "WE ARE GETTING PT SLAB MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......";
-                                getjsondata(0,$message);
-                                // echo "225";
-                                // $this->rollback();
-                                // exit;
-                            } else {
-                                $pt_amount = 0;
+
                             }
+
+                            /*
+                             * =========================================================
+                             * KARNATAKA / OTHER STATES
+                             * =========================================================
+                             *
+                             * Monthly PT.
+                             *
+                             * Original gross:
+                             *     Original salary gross.
+                             *
+                             * Combined gross:
+                             *     Original salary gross + arrear gross.
+                             *
+                             * Month is not used for slab selection.
+                             */
+                            else {
+
+                                $original_pt_gross = (float)$original_actual_gross;
+
+                                $combined_pt_gross = (
+                                    $original_actual_gross + $arrear_actual_gross
+                                );
+
+                            }
+
+                            /*
+                             * =========================================================
+                             * PT SLAB CALCULATION
+                             * =========================================================
+                             */
+                            if (
+                                $state_code !== 31 ||
+                                (
+                                    $state_code === 31 &&
+                                    $pt_type === 3 &&
+                                    in_array($month_no, array(3, 9), true)
+                                )
+                            ) {
+
+                                /*
+                                 * =====================================================
+                                 * SLAB MONTH
+                                 * =====================================================
+                                 *
+                                 * Karnataka : NULL
+                                 * Other     : NULL
+                                 * Tamil Nadu: Current deduction month
+                                 */
+                                if ($state_code === 31) {
+
+                                    $slab_month = $month_no;
+
+                                } else {
+
+                                    $slab_month = null;
+
+                                }
+
+                                /*
+                                 * =====================================================
+                                 * ORIGINAL SALARY PT SLAB
+                                 * =====================================================
+                                 */
+                                $original_pt_slab_rate_array = $this->getPt_slab_rates_for_sal_new(
+                                    $pt_id,
+                                    $emp_comp_code,
+                                    $emp_div_code,
+                                    $emp_state_code,
+                                    $emp_branch_code,
+                                    $emp_employee_type,
+                                    $pt_year_type,
+                                    $slab_month,
+                                    $original_pt_gross,
+                                    $pt_type
+                                );
+
+                                /*
+                                 * =====================================================
+                                 * COMBINED SALARY PT SLAB
+                                 * =====================================================
+                                 */
+                                $combined_pt_slab_rate_array = $this->getPt_slab_rates_for_sal_new(
+                                    $pt_id,
+                                    $emp_comp_code,
+                                    $emp_div_code,
+                                    $emp_state_code,
+                                    $emp_branch_code,
+                                    $emp_employee_type,
+                                    $pt_year_type,
+                                    $slab_month,
+                                    $combined_pt_gross,
+                                    $pt_type
+                                );
+
+                                /*
+                                 * =====================================================
+                                 * VALIDATE MULTIPLE SLAB RESULTS
+                                 * =====================================================
+                                 */
+                                if (
+                                    count($original_pt_slab_rate_array) > 1 ||
+                                    count($combined_pt_slab_rate_array) > 1
+                                ) {
+
+                                    $this->db->trans_rollback();
+
+                                    $message = "WE ARE GETTING PT SLAB MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......";
+
+                                    getjsondata(0, $message);
+                                    exit;
+
+                                }
+
+                                /*
+                                 * =====================================================
+                                 * ORIGINAL SALARY PT AMOUNT
+                                 * =====================================================
+                                 */
+                                if (count($original_pt_slab_rate_array) === 1) {
+
+                                    $pt_amount_original_sal = (float)
+                                    $original_pt_slab_rate_array[0]->mxpt_slb_amount;
+
+                                } else {
+
+                                    $pt_amount_original_sal = 0;
+
+                                }
+
+                                /*
+                                 * =====================================================
+                                 * COMBINED SALARY PT AMOUNT
+                                 * =====================================================
+                                 */
+                                if (count($combined_pt_slab_rate_array) === 1) {
+
+                                    $pt_amount_combined_sal = (float)
+                                    $combined_pt_slab_rate_array[0]->mxpt_slb_amount;
+
+                                } else {
+
+                                    $pt_amount_combined_sal = 0;
+
+                                }
+
+                                /*
+                                 * =====================================================
+                                 * KARNATAKA FEBRUARY SPECIAL RULE
+                                 * =====================================================
+                                 *
+                                 * Only Karnataka (18).
+                                 *
+                                 * February PT = ₹300.
+                                 *
+                                 * Apply the special amount to BOTH original and
+                                 * combined salary PT before calculating the difference.
+                                 */
+                                if ($state_code === 18 && $month_no === 2) {
+
+                                    $pt_amount_original_sal = 300;
+                                    $pt_amount_combined_sal = 300;
+
+                                }
+
+                                /*
+                                 * =====================================================
+                                 * ARREAR PT DIFFERENCE
+                                 * =====================================================
+                                 *
+                                 * Arrear PT =
+                                 * Combined salary PT - Original salary PT
+                                 */
+                                if (
+                                    count($original_pt_slab_rate_array) === 1 ||
+                                    count($combined_pt_slab_rate_array) === 1
+                                ) {
+
+                                    $pt_amount = (
+                                        $pt_amount_combined_sal - $pt_amount_original_sal
+                                    );
+
+                                } else {
+
+                                    $pt_amount = 0;
+
+                                }
+
+                                /*
+                                 * =====================================================
+                                 * CURRENT MONTH SALARY VALIDATION
+                                 * =====================================================
+                                 *
+                                 * IMPORTANT:
+                                 * Here original_actual_gross is assumed to represent
+                                 * the employee's current month's original salary gross.
+                                 *
+                                 * If there is no current month's salary, PT is zero.
+                                 *
+                                 * If current month's gross is less than arrear PT,
+                                 * PT is zero.
+                                 */
+                                $current_month_gross = (float)$original_actual_gross;
+
+                                if (
+                                    $current_month_gross <= 0 ||
+                                    $current_month_gross < $pt_amount
+                                ) {
+
+                                    $pt_amount = 0;
+
+                                }
+
+                            }
+
                         } else {
                             // echo "224"; //---->If we get two arrays for pt we will fire error message
                             $message = "WE ARE GETTING PT MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......";
@@ -16303,6 +16814,7 @@ class Salaries_model extends Adminmodel
                     $emp_date_of_birth      = $emp_data->mxemp_emp_date_of_birth;
                     //----NEW BY SHABABU(01/05/2022)
                     $emp_resign_status      = $emp_data->mxemp_emp_resignation_status;
+                    $emp_resignation_relieving_date      = $emp_data->mxemp_emp_resignation_relieving_date;
                     $emp_unpay_sal_months   = $emp_data->mxemp_emp_unpay_sal_months;
                     //----END NEW BY SHABABU(01/05/2022)
                     //--------------------AGE CALCULATION
@@ -17245,36 +17757,243 @@ class Salaries_model extends Adminmodel
                         // print_r($new_pt_filtered_array);
                         // exit;
                         // echo count($new_pt_filtered_array);exit;
-                        if (count($new_pt_filtered_array) == 1) {
-                            $pt_id = $new_pt_filtered_array[0]->mxpt_id;
-                            $pt_no = $new_pt_filtered_array[0]->mxpt_pt_in_no;
-                            $pt_type = $new_pt_filtered_array[0]->mxpt_pt_type;
-                            $pt_year_type = $new_pt_filtered_array[0]->mxpt_year_type;
-                            // echo $actual_gross;exit;
-                            $pt_slab_rate_array = $this->getPt_slab_rates_for_sal($pt_id, $emp_comp_code, $emp_div_code, $emp_state_code, $emp_branch_code, $emp_employee_type, $pt_year_type, $month, $actual_gross, $pt_type);
 
-                            // echo count($pt_slab_rate_array);exit;
-                            if (count($pt_slab_rate_array) == 1) {
-                                $pt_amount = $pt_slab_rate_array[0]->mxpt_slb_amount;
-                            } else if (count($pt_slab_rate_array) > 1) {
-                                // print_r($pt_slab_rate_array);
-                                // exit;
-                                $this->db->trans_rollback();
-                                $message = "WE ARE GETTING PT SLAB MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......";
-                                getjsondata(0,$message);
-                                // echo "225";
-                                // $this->rollback();
-                                // exit;
+                        // Code UPDATED BY VARAPRASAD for The PT SLABS and monthly calculation for KARNATAKA & TAMILNADU
+                        // UPDATED ON 28/OCT/2026
+
+                        if (count($new_pt_filtered_array) == 1) {
+                            $resign_array = array();
+                            $resign_month = $resign_year = '';
+                            if(
+                                $this->cleanInput($emp_resignation_relieving_date != null)
+                                && $this->cleanInput($emp_resignation_relieving_date != '')
+                            ) {
+                                    $resign_array = explode('-', $this->cleanInput($emp_resignation_relieving_date));
+                            }
+
+
+                            /*
+                             * =========================================================
+                             * PT MASTER DETAILS
+                             * =========================================================
+                             */
+                            $pt_id        = $new_pt_filtered_array[0]->mxpt_id;
+                            $pt_no        = $new_pt_filtered_array[0]->mxpt_pt_in_no;
+                            $pt_type      = (int)$new_pt_filtered_array[0]->mxpt_pt_type;
+                            $pt_year_type = $new_pt_filtered_array[0]->mxpt_year_type;
+
+                            /*
+                             * State codes:
+                             * Karnataka  = 18
+                             * Tamil Nadu = 31
+                             */
+                            $state_code = (int)$emp_state_code;
+
+
+                            /*
+                             * =========================================================
+                             * DEFAULT VALUES
+                             * =========================================================
+                             *
+                             * For monthly / other states:
+                             *
+                             *     PT gross = current month's actual gross
+                             *
+                             * For Tamil Nadu:
+                             *
+                             *     PT gross will be replaced by six-month total
+                             *     in March / September.
+                             */
+                            $pt_gross     = (float)$actual_gross;
+                            $calculate_pt = true;
+
+
+                            /*
+                             * =========================================================
+                             * TAMIL NADU - STATE 31
+                             * =========================================================
+                             * Tamil Nadu PT Type 3:
+                             *     September:
+                             *         April -> September gross
+                             *     March:
+                             *         October -> March gross
+                             *     Other months:
+                             *         No PT
+                             */
+                            if ($state_code === 31) {
+
+                                /* * Tamil Nadu should use Half-Yearly PT. */
+                                if ($pt_type === 3) {
+                                    $month_no = (int)$month;
+                                    /** -------------------------------------------------
+                                     * SEPTEMBER
+                                     * ------------------------------------------------- */
+                                    if ($month_no > 3 && $month_no <= 9) {
+                                        /** April -> September */
+                                        $pt_gross = $this->get_employee_pt_period_gross(
+                                            $emp_code,
+                                            $emp_employee_type,
+                                            (int)$year,
+                                            4,
+                                            (int)$year,
+                                            isset($resign_array[1]) && !empty($resign_array[1])
+                                                ? $resign_array[1] : 9
+                                        );
+
+                                        $pt_gross = (int)$pt_gross;
+
+                                        /** -------------------------------------------------
+                                         * MARCH
+                                         * -------------------------------------------------*/
+                                    } elseif ($month_no >= 9 || $month_no <= 3) {
+                                        /** October previous year -> March current year */
+                                        $pt_gross = $this->get_employee_pt_period_gross(
+                                            $emp_code,
+                                            $emp_employee_type,
+                                            (int)$year - 1,
+                                            10,
+                                            (int)$year,
+                                            isset($resign_array[1]) && !empty($resign_array[1])
+                                                ? $resign_array[1] : 3
+                                        );
+                                        $pt_gross = (int)$pt_gross;
+                                    } else {
+                                        $pt_amount    = 0;
+                                        $calculate_pt = false;
+                                    }
+
+                                } else {
+
+                                    /*
+                                     * Tamil Nadu is configured for Half-Yearly PT.
+                                     *
+                                     * Do not calculate monthly PT.
+                                     */
+                                    $pt_amount    = 0;
+                                    $calculate_pt = false;
+                                }
+
+
+                                /** =========================================================
+                                 * KARNATAKA - STATE 18
+                                 * =========================================================
+                                 * Karnataka is MONTHLY.
+                                 * IMPORTANT:
+                                 * Month is NOT used to find the salary slab.
+                                 * Salary slab is ALWAYS selected using:
+                                 *     mxpt_slb_start_range
+                                 *     mxpt_slb_end_range
+                                 * After finding the applicable slab:
+                                 *
+                                 *     February = ₹300
+                                 *     Other    = master amount
+                                 */
+                            } elseif ($state_code === 18) {
+
+                                /** Current month's gross. */
+                                $pt_gross = (int)$actual_gross;
+                                $calculate_pt = true;
                             } else {
-                                $pt_amount = 0;
+                                $pt_gross = (int)$actual_gross;
+                                $calculate_pt = true;
+                            }
+
+                            /*
+                             * =========================================================
+                             * PT SLAB CALCULATION
+                             * =========================================================
+                             */
+                            if ($calculate_pt) {
+                                /*
+                                 * IMPORTANT:
+                                 * We pass month as NULL for:
+                                 *     Karnataka
+                                 *     Other states
+                                 * because month must NOT participate in slab selection.
+                                 * Tamil Nadu receives its deduction month because
+                                 * its master configuration is period-specific.
+                                 */
+                                if ($state_code === 31) {
+                                    $slab_month = (int)$month;
+                                } else {
+                                    $slab_month = null;
+                                }
+                                /** Get salary slab.
+                                 * The slab function selects the row based on gross
+                                 * range, not on month for Karnataka/other states.
+                                 */
+                                $pt_slab_rate_array = $this->getPt_slab_rates_for_sal_new(
+                                    $pt_id,
+                                    $emp_comp_code,
+                                    $emp_div_code,
+                                    $emp_state_code,
+                                    $emp_branch_code,
+                                    $emp_employee_type,
+                                    $pt_year_type,
+                                    $slab_month,
+                                    $pt_gross,
+                                    $pt_type
+                                );
+
+
+                                /** =====================================================
+                                 * EXACTLY ONE SLAB
+                                 * =====================================================*/
+                                if (count($pt_slab_rate_array) === 1) {
+
+                                    $pt_amount = (float)$pt_slab_rate_array[0]->mxpt_slb_amount;
+
+
+                                    /* =================================================
+                                     * KARNATAKA FEBRUARY SPECIAL RULE
+                                     * =================================================
+                                     * Only State 18. & Only February.
+                                     * The salary slab has already been determined from
+                                     * the gross range above.
+                                     * For now February amount is ₹300.
+                                     * This is the ONLY hard-coded PT amount in the
+                                     * implementation.
+                                     */
+                                    if ($state_code === 18 && (int)$month === 2) {
+                                        $pt_amount = 300;
+                                    }
+
+                                    /** =========================================================
+                                     * CURRENT MONTH SALARY VALIDATION
+                                     * =========================================================
+                                     * $actual_gross = current month's actual gross.
+                                     * If employee has no salary this month:
+                                     *     actual gross = 0
+                                     * means PT cannot be deducted.
+                                     *
+                                     * Also, if current month's gross is less than the
+                                     * calculated PT amount, do not deduct PT.
+                                     */
+                                    $current_month_gross = (float)$actual_gross;
+
+                                    if (
+                                        $current_month_gross <= 0 ||
+                                        $current_month_gross < $pt_amount
+                                    ) {
+
+                                        $pt_amount = 0;
+                                    }
+
+
+                                } elseif (count($pt_slab_rate_array) > 1) {
+                                    $this->db->trans_rollback();
+                                    $message = "WE ARE GETTING PT SLAB MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......";
+                                    getjsondata(0, $message);
+                                    exit;
+                                } else {
+                                    $pt_amount = 0;
+                                }
                             }
                         } else {
                             $this->db->trans_rollback();
-                            // echo "224"; //---->If we get two arrays for pt we will fire error message
                             $message = "WE ARE GETTING PT MASTER MULTIPLE ARRAYS CONTACT DEVELOPER.......";
-                            getjsondata(0,$message);
-                            // $this->rollback();
-                            // exit;
+                            getjsondata(0, $message);
+                            exit;
                         }
                     } else {
                         $pt_amount = 0;

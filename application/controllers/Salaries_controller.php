@@ -2309,8 +2309,10 @@ $savePath = 'uploads/payslips/' . $customFileName;
                             $leaves_data =  $this->Salaries_model->get_leaves_count_data($paysheet_data->mxsal_emp_code,$year."_".$month);
                             // print_r($leaves_data);exit;
                             $html_data .= "<td>$paysheet_data->mxsal_emp_days_in_month</td>";
-                            $present_days = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present + $leaves_data[0]->First_Half_Present_Cl_Applied + $leaves_data[0]->Second_Half_Present_Cl_Applied + $leaves_data[0]->First_Half_Present_Sl_Applied + $leaves_data[0]->Second_Half_Present_Sl_Applied + $leaves_data[0]->First_Half_Present_El_Applied + $leaves_data[0]->Second_Half_Present_El_Applied;
-                            $html_data .= "<td>$present_days</td>";
+                            /*$present_days = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present + $leaves_data[0]->First_Half_Present_Cl_Applied + $leaves_data[0]->Second_Half_Present_Cl_Applied + $leaves_data[0]->First_Half_Present_Sl_Applied + $leaves_data[0]->Second_Half_Present_Sl_Applied + $leaves_data[0]->First_Half_Present_El_Applied + $leaves_data[0]->Second_Half_Present_El_Applied;
+                            $html_data .= "<td>$present_days</td>";*/
+
+                            $html_data .= "<td>$paysheet_data->mxsal_present_days_from_attendance</td>";
 
                             $wo = $leaves_data[0]->Week_Off;
                             $html_data .= "<td>".$wo."</td>";
@@ -2332,9 +2334,11 @@ $savePath = 'uploads/payslips/' . $customFileName;
                             // $html_data .= "<td>$CL</td>";//-->cl
                             // $html_data .= "<td>$SL</td>";//--->sl
                             // $html_data .= "<td>$EL</td>";//-->EL
-                            $html_data .= "<td>$LOP</td>";//--->LOP
-                            $total_days = $present_days + $wo + $public_holiday+$SL;
-                            $html_data .= "<td>$total_days</td>";//--->TOTAL DAYS
+                            //$html_data .= "<td>$LOP</td>";//--->LOP
+                            $html_data .= "<td>".($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $wo + $public_holiday + $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance))."</td>";//--->LOP
+                            /*$total_days = $present_days + $wo + $public_holiday+$SL;
+                            $html_data .= "<td>$total_days</td>";//--->TOTAL DAYS*/
+                            $html_data .= "<td>$paysheet_data->mxsal_total_days_from_attendance</td>";//--->TOTAL DAYS
                             $html_data .= "<td>".(int)$paysheet_data->mxsal_gross_sal."</td>";
                             // //--------------------------NET INCOME HEADS
                             // foreach($incm_heads as $inc_data){
@@ -2453,8 +2457,10 @@ $savePath = 'uploads/payslips/' . $customFileName;
                             $leaves_data =  $this->Salaries_model->get_leaves_count_data($paysheet_data->mxsal_emp_code,$year."_".$month);
                             // print_r($leaves_data);exit;
                             $html_data .= "<td>$paysheet_data->mxsal_emp_days_in_month</td>";
-                            $present_days = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present + $leaves_data[0]->First_Half_Present_Cl_Applied + $leaves_data[0]->Second_Half_Present_Cl_Applied + $leaves_data[0]->First_Half_Present_Sl_Applied + $leaves_data[0]->Second_Half_Present_Sl_Applied + $leaves_data[0]->First_Half_Present_El_Applied + $leaves_data[0]->Second_Half_Present_El_Applied;
-                            $html_data .= "<td>$present_days</td>";
+                            /*$present_days = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present + $leaves_data[0]->First_Half_Present_Cl_Applied + $leaves_data[0]->Second_Half_Present_Cl_Applied + $leaves_data[0]->First_Half_Present_Sl_Applied + $leaves_data[0]->Second_Half_Present_Sl_Applied + $leaves_data[0]->First_Half_Present_El_Applied + $leaves_data[0]->Second_Half_Present_El_Applied;
+                            $html_data .= "<td>$present_days</td>";*/
+
+                            $html_data .= "<td>$paysheet_data->mxsal_present_days_from_attendance</td>";
 
                             $wo = $leaves_data[0]->Week_Off;
                             $html_data .= "<td>".$wo."</td>";
@@ -2473,15 +2479,18 @@ $savePath = 'uploads/payslips/' . $customFileName;
                             // $html_data .= "<td>$SL</td>";//---->SL WITH PAY
 
 
-                            $html_data .= "<td>$CL</td>";//-->cl
+                            $html_data .= "<td>$paysheet_data->mxsal_sl_from_attendance</td>";//-->cl
                             // $html_data .= "<td>$SL</td>";//--->sl
                             // $html_data .= "<td>$EL</td>";//-->EL
-                            $html_data .= "<td>$LOP</td>";//--->LOP
+                            //$html_data .= "<td>$LOP</td>";//--->LOP
+
+                            $html_data .= "<td>".($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $wo + $public_holiday + $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance))."</td>";//--->LOP
                             $total_days = $present_days + $wo + $public_holiday+$CL;
                             // if($paysheet_data->mxsal_emp_code == 'MC0007'){
                             //     echo $total_days;exit;
                             // }
-                            $html_data .= "<td>$total_days</td>";//--->TOTAL DAYS
+                            // $html_data .= "<td>$total_days</td>";//--->TOTAL DAYS
+                            $html_data .= "<td>$paysheet_data->mxsal_total_days_from_attendance</td>";//--->TOTAL DAYS
                             $html_data .= "<td>".(int)$paysheet_data->mxsal_gross_sal."</td>";
                             // //--------------------------NET INCOME HEADS
                             // foreach($incm_heads as $inc_data){
@@ -2640,7 +2649,8 @@ $savePath = 'uploads/payslips/' . $customFileName;
                                 //----------NEW BY SHABABU(12-06-2022)
                                 // $ML = $leaves_data[0]->Meternityleave + $leaves_data[0]->First_Half_Meternityleave + $leaves_data[0]->Second_Half_Meternityleave;
                                 //----------NEW BY SHABABU(12-06-2022)
-                                $LOP = $leaves_data[0]->Absent + $leaves_data[0]->First_Half_Absent + $leaves_data[0]->Second_Half_Absent;
+                                //$LOP = $leaves_data[0]->Absent + $leaves_data[0]->First_Half_Absent + $leaves_data[0]->Second_Half_Absent;
+                                $LOP = $paysheet_data->mxsal_emp_days_in_month - ($present_days + $wo + $PH + $OH + $CL + $SL + $EL );
                                 $public_holiday = $PH + $OH;
                                 $html_data .= "<td>".$public_holiday."</td>";
                                 $html_data .= "<td>0</td>";//---->others Not using now
@@ -2649,7 +2659,8 @@ $savePath = 'uploads/payslips/' . $customFileName;
                                 $html_data .= "<td>$CL</td>";//-->cl
                                 $html_data .= "<td>$SL</td>";//--->sl
                                 $html_data .= "<td>$EL</td>";//-->EL
-                                $html_data .= "<td>$LOP</td>";//--->LOP
+                                //$html_data .= "<td>$LOP</td>";//--->LOP
+                                $html_data .= "<td>".($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $wo + $public_holiday + $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance));
                                 $total_days = $present_days + $wo + $public_holiday + $CL + $SL + $EL;
                                 $html_data .= "<td>$total_days</td>";//--->TOTAL DAYS
                                 //--------------------------NET INCOME HEADS
@@ -2867,7 +2878,7 @@ $savePath = 'uploads/payslips/' . $customFileName;
                                 $html_data .= "<td>$paysheet_data->mxsal_present_days_from_attendance</td>";
                                 // $html_data .= "<td>$paysheet_data->mxsal_present_days</td>";
                                 // $html_data .= "<td>$paysheet_data->mxsal_emp_weak_offs</td>";
-                                // $wo = $leaves_data[0]->Week_Off;
+                                //$wo = $leaves_data[0]->Week_Off;
                                 // $html_data .= "<td>".$wo."</td>";
                                 $html_data .= "<td>$paysheet_data->mxsal_sundays_from_attendance</td>";
 
@@ -2896,7 +2907,10 @@ $savePath = 'uploads/payslips/' . $customFileName;
                                 $html_data .= "<td>$paysheet_data->mxsal_sl_from_attendance</td>";//--->sl
                                 $html_data .= "<td>$paysheet_data->mxsal_el_from_attendance</td>";//-->EL
                                 $html_data .= "<td>$paysheet_data->mxsal_ml_from_attendance</td>";//---->ML
-                                $html_data .= "<td>$paysheet_data->mxsal_lop_from_attendance</td>";//--->LOP
+                                //$html_data .= "<td>$paysheet_data->mxsal_lop_from_attendance</td>";//--->LOP
+                                $html_data .= "<td>".($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $paysheet_data->mxsal_emp_weak_offs + $public_holiday + $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance))."</td>";//--->LOP
+
+                             //$html_data .= "<td>".($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $wo + $public_holiday + $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance));
 
 
 
