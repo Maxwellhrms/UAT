@@ -1058,4 +1058,74 @@ require 'PHPMailer/src/SMTP.php';
 
         return false;
     }
+
+    function checkPaySheetSummary($employeecode = '', $from = '', $to = ''){
+    $ci =& get_instance();
+    $ci->load->database();
+    $employeetypeid = '';
+    $companyid = '';
+    $ci->db->select('mxemp_emp_type,mxemp_emp_comp_code');
+    $ci->db->from('maxwell_employees_info');
+    $ci->db->where('mxemp_emp_id', $employeecode);
+    $ckempquery = $ci->db->get();
+    $emptype = $ckempquery->result_array();
+    $employeetypeid = $emptype[0]['mxemp_emp_type'];
+    $companyid = $emptype[0]['mxemp_emp_comp_code'];
+
+    $yearmonth = !empty($from)? date('Ym', strtotime($from)) : date('Ym');
+
+    // STEP 1: Get dynamic table name
+    $ci->db->select('mxemp_ty_table_name');
+    $ci->db->from('maxwell_employee_type_master');
+    $ci->db->where('mxemp_ty_cmpid', $companyid);
+    $ci->db->where('mxemp_ty_id', $employeetypeid);
+    $ci->db->where('mxemp_ty_status', 1);
+
+    $query = $ci->db->get();
+    $result = $query->row_array();
+
+    if(empty($result)){
+        return array(
+            'workingdays' => 0,
+            'monthyear' => '',
+            'salarystatus' => 'Not Disbursed',
+            'status' => 0
+        );
+    }
+
+    $tableName = $result['mxemp_ty_table_name'];
+
+    // STEP 2: Get salary data
+    $ci->db->select('mxsal_present_days, mxsal_year_month');
+    $ci->db->from($tableName);
+    $ci->db->where('mxsal_emp_code', $employeecode);
+    $ci->db->where('mxsal_year_month', $yearmonth);
+
+    $query2 = $ci->db->get();
+    $row = $query2->row_array();
+
+    // STEP 3: Format response
+    if(!empty($row)){
+
+        $ym = $row['mxsal_year_month'];
+
+        $monthYear = date('F Y', strtotime($ym . '01'));
+
+        return array(
+            'workingdays'  => (int)$row['mxsal_present_days'],
+            'monthyear'    => $monthYear,
+            'salarystatus' => 'Salary Disbursed For ' . $monthYear .' You Can Not Apply For Leave',
+            'status' => 1
+        );
+
+    } else {
+
+        return array(
+            'workingdays'  => 0,
+            'monthyear' => date('F Y', strtotime('-1 month')),
+            'salarystatus' => 'Not Disbursed',
+            'status' => 0
+        );
+    }
+}
 ?>

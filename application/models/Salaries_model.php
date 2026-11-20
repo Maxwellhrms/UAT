@@ -1651,7 +1651,11 @@ class Salaries_model extends Adminmodel
                 group by mxemp_leave_bal_emp_id) as CurrentOCH,
                 CONCAT(mxemp_emp_fname , ' ' , mxemp_emp_lname) as EmployeeName,mx_attendance_emp_code as EmployeeID,
                 count(*) AS Totaldays,
+                
                 sum(case when mx_attendance_first_half = 'WO' AND mx_attendance_second_half = 'WO' then 1 else 0 end) AS Week_Off,
+                sum(case when mx_attendance_first_half = 'WO' AND mx_attendance_second_half != 'WO' then 0.5 else 0 end) AS First_Half_Week_Off,
+                sum(case when mx_attendance_first_half != 'WO' AND mx_attendance_second_half = 'WO' then 0.5 else 0 end) AS Second_Half_Week_Off,
+                
                 sum(case when mx_attendance_first_half = 'PH' AND mx_attendance_second_half = 'PH' then 1 else 0 end) AS Public_Holiday,
                 sum(case when mx_attendance_first_half = 'PH' AND mx_attendance_second_half != 'PH' then 0.5 else 0 end) AS First_Half_Public_Holiday,
                 sum(case when mx_attendance_first_half != 'PH' AND mx_attendance_second_half = 'PH' then 0.5 else 0 end) AS Second_Half_Public_Holiday,
@@ -1758,7 +1762,7 @@ class Salaries_model extends Adminmodel
                 and mx_attendance_date >= (select mxemp_emp_date_of_join from maxwell_employees_info where mxemp_emp_id = '$employeecode')
             GROUP BY EmployeeID";
         $query = $this->db->query($sql);
-        // echo $this->db->last_query();exit;
+         // echo $this->db->last_query();exit;
         return $qury = $query->result();
     }
     public function get_variable_heads_data_from_sal_table($variable_heads_array, $year_month, $emptype)
@@ -8582,7 +8586,7 @@ class Salaries_model extends Adminmodel
 
                         $present_days = $present_days_from_attendance = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present + $leaves_data[0]->regulation_full_day + $leaves_data[0]->First_Half_regulation + $leaves_data[0]->Second_Half_regulation + $leaves_data[0]->First_Half_Shortleave + $leaves_data[0]->Second_Half_Shortleave + $leaves_data[0]->ot_full_day + $leaves_data[0]->First_Half_ot + $leaves_data[0]->Second_Half_ot;
 
-                        $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off;
+                        $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off + $leaves_data[0]->First_Half_Week_Off + $leaves_data[0]->Second_Half_Week_Off;
                         $PH = $leaves_data[0]->Public_Holiday + $leaves_data[0]->First_Half_Public_Holiday + $leaves_data[0]->Second_Half_Public_Holiday;
                         $OH = $leaves_data[0]->Optional_Holiday + $leaves_data[0]->First_Half_Optional_Holiday + $leaves_data[0]->Second_Half_Optional_Holiday;
                         $public_holiday = $PH + $OH;
@@ -8711,12 +8715,12 @@ class Salaries_model extends Adminmodel
                                 // echo $attendance_data->mx_attendance_emp_code;
                                 // echo $attendance_data->mx_attendance_date;
                                 // echo $second_half;exit;
-                                if ($first_half != "AB" && $first_half != "LOP") {
+                                if ($first_half != "AB" && $first_half != "LOP" && $first_half != "OD") {
                                     $first_half_count = 0.5;
                                 } else {
                                     $first_half_count = 0;
                                 }
-                                if ($second_half != "AB" && $second_half != "LOP") {
+                                if ($second_half != "AB" && $second_half != "LOP" && $second_half != "OD") {
                                     $second_half_count = 0.5;
                                 } else {
                                     $second_half_count = 0;
@@ -9446,9 +9450,9 @@ class Salaries_model extends Adminmodel
                                             //------------------- END ESI CALCULATION FOR HRA
                                             //************************************   END FOR HRA   **********************************
                                         } else if ($column_inc_is_tsp == 1) {
-                                            $tsp_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                            $tsp_amount = number_format(((($gross_sal) / $total_days_in_month) * $total_days), 2, '.', '');
                                         } else if ($column_inc_is_proffesionals_charges == 1) {
-                                            $professional_charges_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                            $professional_charges_amount = number_format(((($gross_sal) / $total_days_in_month) * $total_days), 2, '.', '');
                                         }
 
                                         // echo $professional_charges_amount;exit;
@@ -10402,7 +10406,7 @@ class Salaries_model extends Adminmodel
 
                     $present_days =  $present_days_from_attendance = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present +  $leaves_data[0]->regulation_full_day + $leaves_data[0]->First_Half_regulation + $leaves_data[0]->Second_Half_regulation + $leaves_data[0]->First_Half_Shortleave + $leaves_data[0]->Second_Half_Shortleave +  $leaves_data[0]->ot_full_day + $leaves_data[0]->First_Half_ot + $leaves_data[0]->Second_Half_ot;
                     // echo $present_days;exit;
-                    $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off;
+                    $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off + $leaves_data[0]->First_Half_Week_Off + $leaves_data[0]->Second_Half_Week_Off;
                     $PH = $leaves_data[0]->Public_Holiday + $leaves_data[0]->First_Half_Public_Holiday + $leaves_data[0]->Second_Half_Public_Holiday;
                     $OH = $leaves_data[0]->Optional_Holiday + $leaves_data[0]->First_Half_Optional_Holiday + $leaves_data[0]->Second_Half_Optional_Holiday;
                     $public_holiday = $PH + $OH;
@@ -10504,7 +10508,7 @@ class Salaries_model extends Adminmodel
 
                     //***************************************ATTENDANCE DATA
                     $attendance_array = $this->getPresentAttendance($year, $month, $emp_code, $emp_comp_code);
-                    // print_r($attendance_array);exit;
+                    //echo "<pre>";print_r($attendance_array);//exit;
                     $attendance_present_days = 0;
                     $attendance_present_count = 0;
                     // echo $emp_code;
@@ -10518,12 +10522,12 @@ class Salaries_model extends Adminmodel
                             // echo $attendance_data->mx_attendance_emp_code;
                             // echo $attendance_data->mx_attendance_date;
                             // echo $second_half;exit;
-                            if ($first_half != "AB" && $first_half != "LOP") {
+                            if ($first_half != "AB" && $first_half != "LOP" && $first_half != "OD") {
                                 $first_half_count = 0.5;
                             } else {
                                 $first_half_count = 0;
                             }
-                            if ($second_half != "AB" && $second_half != "LOP") {
+                            if ($second_half != "AB" && $second_half != "LOP" && $second_half != "OD") {
                                 $second_half_count = 0.5;
                             } else {
                                 $second_half_count = 0;
@@ -10534,7 +10538,7 @@ class Salaries_model extends Adminmodel
                     }
                     $present_days_of_employees_in_month = number_format($attendance_present_days, 2, '.', '');
                     // if($emp_code == "M0007"){
-                    // echo $present_days_of_employees_in_month;exit;
+                    //echo $present_days_of_employees_in_month;exit;
 
                     // }
                     // $data['mxsal_present_days'] = $present_days_of_employees_in_month;
@@ -11269,9 +11273,9 @@ class Salaries_model extends Adminmodel
                                         //------------------- END ESI CALCULATION FOR HRA
                                         //************************************   END FOR HRA   **********************************
                                     }else if($column_inc_is_tsp == 1){
-                                        $tsp_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                        $tsp_amount = number_format(((($gross_sal) / $total_days_in_month) * $total_days), 2, '.', '');
                                     }else if($column_inc_is_proffesionals_charges == 1){
-                                        $professional_charges_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                        $professional_charges_amount = number_format(((($gross_sal) / $total_days_in_month) * $total_days), 2, '.', '');
                                     }
 
                                     // echo $professional_charges_amount;exit;
@@ -12070,7 +12074,7 @@ class Salaries_model extends Adminmodel
 
                     $present_days = $present_days_from_attendance = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present +  $leaves_data[0]->regulation_full_day + $leaves_data[0]->First_Half_regulation + $leaves_data[0]->Second_Half_regulation + $leaves_data[0]->First_Half_Shortleave + $leaves_data[0]->Second_Half_Shortleave +  $leaves_data[0]->ot_full_day + $leaves_data[0]->First_Half_ot + $leaves_data[0]->Second_Half_ot;
 
-                    $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off;
+                    $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off + $leaves_data[0]->First_Half_Week_Off + $leaves_data[0]->Second_Half_Week_Off;
                     $PH = $leaves_data[0]->Public_Holiday + $leaves_data[0]->First_Half_Public_Holiday + $leaves_data[0]->Second_Half_Public_Holiday;
                     $OH = $leaves_data[0]->Optional_Holiday + $leaves_data[0]->First_Half_Optional_Holiday + $leaves_data[0]->Second_Half_Optional_Holiday;
                     $public_holiday = $PH + $OH;
@@ -12168,12 +12172,12 @@ class Salaries_model extends Adminmodel
                             // echo $attendance_data->mx_attendance_emp_code;
                             // echo $attendance_data->mx_attendance_date;
                             // echo $second_half;exit;
-                            if ($first_half != "AB" && $first_half != "LOP") {
+                            if ($first_half != "AB" && $first_half != "LOP" && $first_half != "OD") {
                                 $first_half_count = 0.5;
                             } else {
                                 $first_half_count = 0;
                             }
-                            if ($second_half != "AB" && $second_half != "LOP") {
+                            if ($second_half != "AB" && $second_half != "LOP" && $second_half != "OD") {
                                 $second_half_count = 0.5;
                             } else {
                                 $second_half_count = 0;
@@ -13052,9 +13056,9 @@ class Salaries_model extends Adminmodel
                                         //------------------- END ESI CALCULATION FOR HRA
                                         //************************************   END FOR HRA   **********************************
                                     }else if($column_inc_is_tsp == 1){
-                                        $tsp_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                        $tsp_amount = number_format(((($gross_sal) / $total_days_in_month) * $total_days), 2, '.', '');
                                     }else if($column_inc_is_proffesionals_charges == 1){
-                                        $professional_charges_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                        $professional_charges_amount = number_format(((($gross_sal) / $total_days_in_month) * $total_days), 2, '.', '');
                                     }
 
                                     // echo $professional_charges_amount;exit;
@@ -13911,7 +13915,7 @@ class Salaries_model extends Adminmodel
 
                 $present_days = $present_days_from_attendance = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present +  $leaves_data[0]->regulation_full_day + $leaves_data[0]->First_Half_regulation + $leaves_data[0]->Second_Half_regulation + $leaves_data[0]->First_Half_Shortleave + $leaves_data[0]->Second_Half_Shortleave +  $leaves_data[0]->ot_full_day + $leaves_data[0]->First_Half_ot + $leaves_data[0]->Second_Half_ot;
 
-                $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off;
+                $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off + $leaves_data[0]->First_Half_Week_Off + $leaves_data[0]->Second_Half_Week_Off;
                 $PH = $leaves_data[0]->Public_Holiday + $leaves_data[0]->First_Half_Public_Holiday + $leaves_data[0]->Second_Half_Public_Holiday;
                 $OH = $leaves_data[0]->Optional_Holiday + $leaves_data[0]->First_Half_Optional_Holiday + $leaves_data[0]->Second_Half_Optional_Holiday;
                 $public_holiday = $PH + $OH;
@@ -14026,12 +14030,12 @@ class Salaries_model extends Adminmodel
                         // echo $attendance_data->mx_attendance_emp_code;
                         // echo $attendance_data->mx_attendance_date;
                         // echo $second_half;exit;
-                        if ($first_half != "AB" && $first_half != "LOP") {
+                        if ($first_half != "AB" && $first_half != "LOP" && $first_half != "OD") {
                             $first_half_count = 0.5;
                         } else {
                             $first_half_count = 0;
                         }
-                        if ($second_half != "AB" && $second_half != "LOP") {
+                        if ($second_half != "AB" && $second_half != "LOP" && $second_half != "OD") {
                             $second_half_count = 0.5;
                         } else {
                             $second_half_count = 0;
@@ -14764,9 +14768,9 @@ class Salaries_model extends Adminmodel
                                     //------------------- END ESI CALCULATION FOR HRA
                                     //************************************   END FOR HRA   **********************************
                                 }else if($column_inc_is_tsp == 1){
-                                    $tsp_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                    $tsp_amount = number_format(((($gross_sal) / $total_days_in_month) * $total_days), 2, '.', '');
                                 }else if($column_inc_is_proffesionals_charges == 1){
-                                    $professional_charges_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                    $professional_charges_amount = number_format(((($gross_sal) / $total_days_in_month) * $total_days), 2, '.', '');
                                 }
 
                                 // echo $professional_charges_amount;exit;
@@ -15303,7 +15307,7 @@ class Salaries_model extends Adminmodel
 
                 $present_days = $present_days_from_attendance = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present +  $leaves_data[0]->regulation_full_day + $leaves_data[0]->First_Half_regulation + $leaves_data[0]->Second_Half_regulation + $leaves_data[0]->First_Half_Shortleave + $leaves_data[0]->Second_Half_Shortleave +  $leaves_data[0]->ot_full_day + $leaves_data[0]->First_Half_ot + $leaves_data[0]->Second_Half_ot;
 
-                $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off;
+                $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off + $leaves_data[0]->First_Half_Week_Off + $leaves_data[0]->Second_Half_Week_Off;
                 $PH = $leaves_data[0]->Public_Holiday + $leaves_data[0]->First_Half_Public_Holiday + $leaves_data[0]->Second_Half_Public_Holiday;
                 $OH = $leaves_data[0]->Optional_Holiday + $leaves_data[0]->First_Half_Optional_Holiday + $leaves_data[0]->Second_Half_Optional_Holiday;
                 $public_holiday = $PH + $OH;
@@ -15402,12 +15406,12 @@ class Salaries_model extends Adminmodel
                         // echo $attendance_data->mx_attendance_emp_code;
                         // echo $attendance_data->mx_attendance_date;
                         // echo $second_half;exit;
-                        if ($first_half != "AB" && $first_half != "LOP") {
+                        if ($first_half != "AB" && $first_half != "LOP" && $first_half != "OD") {
                             $first_half_count = 0.5;
                         } else {
                             $first_half_count = 0;
                         }
-                        if ($second_half != "AB" && $second_half != "LOP") {
+                        if ($second_half != "AB" && $second_half != "LOP" && $second_half != "OD") {
                             $second_half_count = 0.5;
                         } else {
                             $second_half_count = 0;
@@ -16137,9 +16141,9 @@ class Salaries_model extends Adminmodel
                                     //------------------- END ESI CALCULATION FOR HRA
                                     //************************************   END FOR HRA   **********************************
                                 }else if($column_inc_is_tsp == 1){
-                                    $tsp_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                    $tsp_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $total_days), 2, '.', '');
                                 }else if($column_inc_is_proffesionals_charges == 1){
-                                    $professional_charges_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                    $professional_charges_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $total_days), 2, '.', '');
                                 }
 
                                 // echo $professional_charges_amount;exit;
@@ -16854,7 +16858,7 @@ class Salaries_model extends Adminmodel
 
                     $present_days =  $present_days_from_attendance = $leaves_data[0]->Present + $leaves_data[0]->First_Half_Present + $leaves_data[0]->Second_Half_Present +  $leaves_data[0]->regulation_full_day + $leaves_data[0]->First_Half_regulation + $leaves_data[0]->Second_Half_regulation + $leaves_data[0]->First_Half_Shortleave + $leaves_data[0]->Second_Half_Shortleave +  $leaves_data[0]->ot_full_day + $leaves_data[0]->First_Half_ot + $leaves_data[0]->Second_Half_ot;
                     // echo $present_days;exit;
-                    $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off;
+                    $wo = ($leaves_data[0]->Week_Off == null) ? 0 : $leaves_data[0]->Week_Off + $leaves_data[0]->First_Half_Week_Off + $leaves_data[0]->Second_Half_Week_Off;
                     $PH = $leaves_data[0]->Public_Holiday + $leaves_data[0]->First_Half_Public_Holiday + $leaves_data[0]->Second_Half_Public_Holiday;
                     $OH = $leaves_data[0]->Optional_Holiday + $leaves_data[0]->First_Half_Optional_Holiday + $leaves_data[0]->Second_Half_Optional_Holiday;
                     $public_holiday = $PH + $OH;
@@ -16970,12 +16974,12 @@ class Salaries_model extends Adminmodel
                             // echo $attendance_data->mx_attendance_emp_code;
                             // echo $attendance_data->mx_attendance_date;
                             // echo $second_half;exit;
-                            if ($first_half != "AB" && $first_half != "LOP") {
+                            if ($first_half != "AB" && $first_half != "LOP" && $first_half != "OD") {
                                 $first_half_count = 0.5;
                             } else {
                                 $first_half_count = 0;
                             }
-                            if ($second_half != "AB" && $second_half != "LOP") {
+                            if ($second_half != "AB" && $second_half != "LOP" && $second_half != "OD") {
                                 $second_half_count = 0.5;
                             } else {
                                 $second_half_count = 0;
@@ -17721,9 +17725,9 @@ class Salaries_model extends Adminmodel
                                         //------------------- END ESI CALCULATION FOR HRA
                                         //************************************   END FOR HRA   **********************************
                                     }else if($column_inc_is_tsp == 1){
-                                        $tsp_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                        $tsp_amount = number_format(((($gross_sal) / $total_days_in_month) * $total_days), 2, '.', '');
                                     }else if($column_inc_is_proffesionals_charges == 1){
-                                        $professional_charges_amount = number_format(((($final_rate_basic) / $total_days_in_month) * $present_days_of_employees_in_month), 2, '.', '');
+                                        $professional_charges_amount = number_format(((($gross_sal) / $total_days_in_month) * $total_days), 2, '.', '');
                                     }
 
                                     // echo $professional_charges_amount;exit;

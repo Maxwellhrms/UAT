@@ -11220,6 +11220,12 @@ public function saveemployeerequesttype($data){
            // echo $this->db->last_query();exit;
             if(count($result)>0){
                 if($approve == 1){
+
+                    $checkpaysheet = checkPaySheetSummary($result[0]['employeeid'], $result[0]['from'], $result[0]['to']);
+                    if($checkpaysheet['status'] == 1){
+                        return "Paysheet already generated for this employee for the selected date range. You cannot approve/reject this request.";
+                    }
+
                     $autharry= array(
                             "mxar_authfinal_remarks"=>$remarks,
                             "mxar_hrfinal_accept"=>$this->session->userdata('user_id'),
@@ -11362,7 +11368,11 @@ public function saveemployeerequesttype($data){
         $this->db->where('mxar_status',1);
         $query= $this->db->get();
         $result = $query->result();
-        
+
+            $checkpaysheet = checkPaySheetSummary($result[0]->employeeid, $result[0]->from, $result[0]->to);
+            if($checkpaysheet['status'] == 1){
+                return "Paysheet already generated for this employee for the selected date range. You cannot approve/reject this request.";
+            }
         // echo $this->db->last_query(); die;
         
                if( ($result[0]->finalstatus == 1) && ($result[0]->authfinalstatus == 1) && ($result[0]->status == 1) ){
@@ -11997,6 +12007,11 @@ public function saveemployeerequesttype($data){
             $this->db->where('mxar_id', $uniqid);
             $query = $this->db->get();
             $res = $query->result_array();
+
+            $checkpaysheet = checkPaySheetSummary($res[0]['employeeid'], $res[0]['from'], $res[0]['to']);
+            if($checkpaysheet['status'] == 1){
+                return "Paysheet already generated for this employee for the selected date range. You cannot approve/reject this request.";
+            }
 
             $applieddate = $res[0]['from'];
             $tblappdate = date('Y_m',strtotime($applieddate));      
@@ -14812,7 +14827,7 @@ public function saveemployeerequesttype($data){
     public function getAllEmployeesFullDetails($data)
     {
         // Employee Info
-        $this->db->select('mxemp_emp_autouniqueid, mxemp_emp_date_of_join, mxemp_emp_comp_code, mxemp_emp_division_code, mxemp_emp_branch_code, mxemp_emp_sub_branch_code, mxemp_emp_dept_code, mxemp_emp_grade_code, mxemp_emp_desg_code, mxemp_emp_state_code, mxemp_emp_type, mxemp_emp_type_name, mxemp_emp_id, mxemp_emp_fname, mxemp_emp_lname, mxemp_emp_img, mxemp_emp_gender, mxemp_emp_marital_status, mxemp_emp_bloodgroup, mxemp_emp_phone_no, mxemp_emp_alt_phn_no, mxemp_emp_email_id, mxemp_emp_date_of_birth, mxemp_emp_age, mxemp_emp_present_city, mxemp_emp_present_state, mxemp_emp_present_country, mxemp_emp_present_postalcode, mxemp_emp_current_salary, mxemp_emp_status, mxcp_name, mxdesg_name, mxdpt_name, mxd_name, mxb_name, mxgrd_name, mxemp_emp_resignation_status, mxemp_emp_resignation_reason, mxemp_emp_resignation_date, mxemp_emp_resignation_relieving_date, mxemp_emp_resignation_relieving_settlement_date, mxst_state, mxemp_ty_name, mxemp_emp_employee_lic_no, mxemp_emp_gratuity, gratuity_lic_amt, gratuity_lic_vch, gratuity_status, gratuity_amt_disb_from_maxwell, gratuity_disb_on, gratuity_chq_no, post_exit_cont, prop_return, vch_attachment, chq_attachment, gratuity_created, gratuity_updated,mxpsc_percentage AS basic_percentage,mxpsc_emptype_name');
+        $this->db->select('mxemp_emp_autouniqueid, mxemp_emp_date_of_join, mxemp_emp_comp_code, mxemp_emp_division_code, mxemp_emp_branch_code, mxemp_emp_sub_branch_code, mxemp_emp_dept_code, mxemp_emp_grade_code, mxemp_emp_desg_code, mxemp_emp_state_code, mxemp_emp_type, mxemp_emp_type_name, mxemp_emp_id, mxemp_emp_fname, mxemp_emp_lname, mxemp_emp_img, mxemp_emp_gender, mxemp_emp_marital_status, mxemp_emp_bloodgroup, mxemp_emp_phone_no, mxemp_emp_alt_phn_no, mxemp_emp_email_id, mxemp_emp_date_of_birth, mxemp_emp_age, mxemp_emp_present_city, mxemp_emp_present_state, mxemp_emp_present_country, mxemp_emp_present_postalcode, mxemp_emp_current_salary, mxemp_emp_status, mxcp_name, mxdesg_name, mxdpt_name, mxd_name, mxb_name, mxgrd_name, mxemp_emp_resignation_status, mxemp_emp_resignation_reason, mxemp_emp_resignation_date, mxemp_emp_resignation_relieving_date, mxemp_emp_resignation_relieving_settlement_date, mxst_state, mxemp_ty_name, mxemp_emp_employee_lic_no, mxemp_emp_gratuity, gratuity_lic_amt, gratuity_lic_vch, gratuity_status, gratuity_amt_disb_from_maxwell, gratuity_disb_on, gratuity_chq_no, post_exit_cont, prop_return, vch_attachment, chq_attachment, gratuity_created, gratuity_updated,mxpsc.mxpsc_percentage AS basic_percentage, mxpsc.mxpsc_emptype_name');
         $this->db->from('maxwell_employees_info');
         $this->db->join('maxwell_company_master', 'mxcp_id = mxemp_emp_comp_code', 'INNER');
         $this->db->join('maxwell_designation_master', 'mxdesg_id = mxemp_emp_desg_code', 'INNER');
@@ -14822,7 +14837,20 @@ public function saveemployeerequesttype($data){
         $this->db->join('maxwell_grade_master', 'mxgrd_id = mxemp_emp_grade_code', 'INNER');
         $this->db->join('maxwell_state_master', 'mxst_id = mxemp_emp_state_code', 'INNER');
         $this->db->join('maxwell_employee_type_master', 'mxemp_ty_id = mxemp_emp_type', 'INNER');
-        $this->db->join('maxwell_pay_structure_child', 'mxemp_emp_type = mxpsc_emptype_id  AND mxpsc_inc_head_name = "BASIC"', 'INNER');
+        // $this->db->join('maxwell_pay_structure_child', 'mxemp_emp_type = mxpsc_emptype_id  AND mxpsc_inc_head_name = "BASIC"', 'INNER');
+        $this->db->join(
+            'maxwell_pay_structure_child mxpsc',
+            'mxpsc.mxpsc_emptype_id = mxemp_emp_type
+             AND mxpsc.mxpsc_inc_head_name = "BASIC"
+             AND mxpsc.mxpsc_affect_from = (
+                 SELECT MAX(mxpsc2.mxpsc_affect_from)
+                 FROM maxwell_pay_structure_child mxpsc2
+                 WHERE mxpsc2.mxpsc_emptype_id = mxemp_emp_type
+                 AND mxpsc2.mxpsc_inc_head_name = "BASIC"
+             )',
+            'INNER',
+            FALSE
+        );
 
         if (!empty($data['cmpname'])) {
             $this->db->where('mxemp_emp_comp_code', $data['cmpname']);
@@ -14877,9 +14905,11 @@ public function saveemployeerequesttype($data){
         //     $st = 1;
         //     $this->db->where('mxemp_emp_resignation_status', $st);
         // }
+        $this->db->group_by('mxemp_emp_id');
+        $this->db->order_by('mxpsc_affect_from', 'desc');
         $this->db->order_by('mxemp_emp_id', 'asc');
         $query1 = $this->db->get();
-         // echo $this->db->last_query();exit;
+          // echo $this->db->last_query();exit;
         $returnarray = $query1->result();
         return $returnarray;
     }

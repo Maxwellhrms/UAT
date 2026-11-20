@@ -2335,7 +2335,10 @@ $savePath = 'uploads/payslips/' . $customFileName;
                             // $html_data .= "<td>$SL</td>";//--->sl
                             // $html_data .= "<td>$EL</td>";//-->EL
                             //$html_data .= "<td>$LOP</td>";//--->LOP
-                            $html_data .= "<td>".($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $wo + $public_holiday + $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance))."</td>";//--->LOP
+                            /*$html_data .= "<td>".($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $wo + $public_holiday + $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance))."</td>";//--->LOP*/
+
+                            $html_data .= "<td>".
+                                ($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $paysheet_data->mxsal_sundays_from_attendance +$public_holiday+ $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance + $paysheet_data->mxsal_ml_from_attendance))."</td>";//--->LOP  // CHANGES By VARAPRASAD ON 19112026
                             /*$total_days = $present_days + $wo + $public_holiday+$SL;
                             $html_data .= "<td>$total_days</td>";//--->TOTAL DAYS*/
                             $html_data .= "<td>$paysheet_data->mxsal_total_days_from_attendance</td>";//--->TOTAL DAYS
@@ -2880,7 +2883,7 @@ $savePath = 'uploads/payslips/' . $customFileName;
                                 // $html_data .= "<td>$paysheet_data->mxsal_emp_weak_offs</td>";
                                 //$wo = $leaves_data[0]->Week_Off;
                                 // $html_data .= "<td>".$wo."</td>";
-                                $html_data .= "<td>$paysheet_data->mxsal_sundays_from_attendance</td>";
+                                    $html_data .= "<td>$paysheet_data->mxsal_sundays_from_attendance</td>";
 
                                 // $PH = $leaves_data[0]->Public_Holiday + $leaves_data[0]->First_Half_Public_Holiday + $leaves_data[0]->Second_Half_Public_Holiday;
                                 // $OH = $leaves_data[0]->Optional_Holiday + $leaves_data[0]->First_Half_Optional_Holiday + $leaves_data[0]->Second_Half_Optional_Holiday;
@@ -2908,7 +2911,10 @@ $savePath = 'uploads/payslips/' . $customFileName;
                                 $html_data .= "<td>$paysheet_data->mxsal_el_from_attendance</td>";//-->EL
                                 $html_data .= "<td>$paysheet_data->mxsal_ml_from_attendance</td>";//---->ML
                                 //$html_data .= "<td>$paysheet_data->mxsal_lop_from_attendance</td>";//--->LOP
-                                $html_data .= "<td>".($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $paysheet_data->mxsal_emp_weak_offs + $public_holiday + $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance))."</td>";//--->LOP
+                             /*$paysheet_data->mxsal_emp_days_in_month."-(".$paysheet_data->mxsal_present_days_from_attendance."+".$paysheet_data->mxsal_sundays_from_attendance."+".$public_holiday."+". $paysheet_data->mxsal_cl_from_attendance ."+" .$paysheet_data->mxsal_sl_from_attendance. "+". $paysheet_data->mxsal_el_from_attendance ."+". $paysheet_data->mxsal_ml_from_attendance.") => ".*/
+                             $html_data .= "<td>".
+                                     ($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $paysheet_data->mxsal_sundays_from_attendance +$public_holiday+ $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance))."</td>";//--->LOP  // CHANGES By VARAPRASAD ON 19112026
+                             /*$html_data .= "<td>".($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $wo + $public_holiday + $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance))."</td>"; //--->LOP*/
 
                              //$html_data .= "<td>".($paysheet_data->mxsal_emp_days_in_month - ($paysheet_data->mxsal_present_days_from_attendance + $wo + $public_holiday + $paysheet_data->mxsal_cl_from_attendance + $paysheet_data->mxsal_sl_from_attendance + $paysheet_data->mxsal_el_from_attendance + $paysheet_data->mxsal_ml_from_attendance));
 
